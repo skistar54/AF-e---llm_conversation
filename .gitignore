@@ -5,3 +5,5 @@ __pycache__/
 .envrc
 # Neovim project-specific config
 .nvim.lua
+.env
+venv/

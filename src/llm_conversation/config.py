@@ -6,17 +6,22 @@ configuration from a JSON file.
 
 import json
 from pathlib import Path
-from typing import Self
+from typing import Literal, Self
 
 import ollama
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from .conversation_manager import TurnOrder
 
+Provider = Literal["ollama", "openai"]
+
 
 def get_available_models() -> list[str]:
-    """Get a list of available Ollama models."""
-    return [x.model or "" for x in ollama.list().models if x.model]
+    """Get a list of available Ollama models. Returns an empty list if Ollama is not running."""
+    try:
+        return [x.model or "" for x in ollama.list().models if x.model]
+    except Exception:
+        return []
 
 
 class AgentConfig(BaseModel):
@@ -25,25 +30,27 @@ class AgentConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")  # pyright: ignore[reportUnannotatedClassAttribute]
 
     name: str = Field(..., min_length=1, description="Name of the AI agent")
-    model: str = Field(..., description="Ollama model to be used")
+    model: str = Field(..., description="Model to be used (Ollama model name or OpenAI model name, e.g. 'gpt-4o')")
     system_prompt: str = Field(..., description="Initial system prompt for the agent")
+    provider: Provider = Field(default="ollama", description="Backend to use: 'ollama' (local) or 'openai' (API)")
     temperature: float = Field(
         default=0.8,
         ge=0.0,
         le=1.0,
         description="Sampling temperature for the model (0.0-1.0)",
     )
-    ctx_size: int = Field(default=2048, ge=0, description="Context size for the model")
+    ctx_size: int = Field(default=2048, ge=0, description="Context size for the model (only used for Ollama)")
 
-    @field_validator("model")
-    @classmethod
-    def validate_model(cls, value: str) -> str:  # noqa: D102
-        available_models = get_available_models()
-        if value not in available_models:
-            msg = f"Model '{value}' is not available"
-            raise ValueError(msg)
+    @model_validator(mode="after")
+    def validate_model(self) -> Self:  # noqa: D102
+        if self.provider == "ollama":
+            available_models = get_available_models()
+            # Only validate if Ollama is reachable (non-empty list).
+            if available_models and self.model not in available_models:
+                msg = f"Ollama model '{self.model}' is not available. Available models: {available_models}"
+                raise ValueError(msg)
 
-        return value
+        return self
 
 
 class ConversationSettings(BaseModel):

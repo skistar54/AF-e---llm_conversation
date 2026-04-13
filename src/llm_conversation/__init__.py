@@ -31,6 +31,8 @@ def create_ai_agent_from_config(config: AgentConfig) -> AIAgent:
         system_prompt=config.system_prompt,
         temperature=config.temperature or 0.8,
         ctx_size=config.ctx_size or 2048,
+        provider=config.provider,
+        # api_key=None → openai library reads OPENAI_API_KEY from environment automatically
     )
 
 
@@ -197,6 +199,9 @@ def prompt_bool(prompt_text: str, default: bool = False) -> bool:
 # TODO: Rename the project to ClankerTinker.
 def main() -> None:
     """Run a conversation between AI agents."""
+    from dotenv import load_dotenv
+
+    load_dotenv()  # loads OPENAI_API_KEY (and others) from .env file if present
     setup_logging()
 
     parser = argparse.ArgumentParser(description="Run a conversation between AI agents")

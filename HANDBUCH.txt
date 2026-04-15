@@ -1,0 +1,316 @@
+================================================================================
+  HANDBUCH – KI-AGENTEN GESPRÄCHE STARTEN UND KONFIGURIEREN
+  Für Personen ohne Programmierkenntnisse
+================================================================================
+
+Dieses Handbuch erklärt Schritt für Schritt, wie du das Programm einrichtest,
+startest und die KI-Agenten konfigurierst.
+
+--------------------------------------------------------------------------------
+WAS MACHT DIESES PROGRAMM?
+--------------------------------------------------------------------------------
+
+Das Programm lässt zwei (oder mehr) KI-Figuren automatisch miteinander reden.
+Du gibst jeder Figur eine Rolle (z. B. "Professor" oder "Student") und einen
+Namen. Die KIs führen dann selbstständig ein Gespräch – ohne dass du eingreifen
+musst. Du kannst wählen, ob die KIs lokal auf deinem Laptop laufen (Ollama)
+oder über das Internet (ChatGPT / OpenAI API).
+
+
+================================================================================
+TEIL 1 – EINMALIGE EINRICHTUNG (nur beim allerersten Mal nötig)
+================================================================================
+
+--------------------------------------------------------------------------------
+SCHRITT 1: Python installieren (falls noch nicht vorhanden)
+--------------------------------------------------------------------------------
+
+Python ist die Programmiersprache, in der das Programm geschrieben ist.
+
+  → Gehe auf: https://www.python.org/downloads/
+  → Klicke auf den grossen gelben "Download"-Knopf
+  → Öffne die heruntergeladene Datei
+  → WICHTIG: Hake unten "Add Python to PATH" an, bevor du auf Install klickst
+  → Folge dem Installationsassistenten bis zum Ende
+
+
+--------------------------------------------------------------------------------
+SCHRITT 2: Ollama installieren (für lokale KI)
+--------------------------------------------------------------------------------
+
+Ollama ist das Programm, das die KI-Modelle auf deinem Laptop laufen lässt.
+
+  → Gehe auf: https://ollama.com/download
+  → Lade die Windows-Version herunter und installiere sie
+  → Nach der Installation läuft Ollama im Hintergrund (kleines Symbol in der
+    Taskleiste, unten rechts)
+
+Dann musst du einmalig das KI-Modell herunterladen. Öffne dazu die
+Eingabeaufforderung (CMD) und tippe:
+
+  ollama pull llama3:8b
+
+  → Das lädt das Modell herunter (ca. 4–5 GB, dauert je nach Internet etwas)
+  → Du musst das nur einmal machen
+
+
+--------------------------------------------------------------------------------
+SCHRITT 3: Benötigte Zusatz-Programme installieren
+--------------------------------------------------------------------------------
+
+Öffne die Eingabeaufforderung (CMD):
+  → Drücke die Windows-Taste, tippe "cmd", drücke Enter
+
+Tippe dann folgende Zeilen nacheinander und drücke jeweils Enter:
+
+  pip install openai python-dotenv
+
+  → Das lädt zwei Hilfspakete herunter, die das Programm braucht
+  → Warte bis beide Installationen abgeschlossen sind (du siehst "Successfully
+    installed" am Ende)
+
+
+================================================================================
+TEIL 2 – DEN OPENAI (CHATGPT) API-SCHLÜSSEL EINTRAGEN
+================================================================================
+
+Wenn du ChatGPT-Agenten verwenden möchtest, brauchst du einen API-Schlüssel.
+Den hast du von deinem Betreuer erhalten.
+
+  → Öffne im Projektordner die Datei:   .env
+    (sie liegt direkt im Hauptordner, zusammen mit README.md und LOGBOOK.md)
+
+  → Du siehst folgende Zeile:
+      OPENAI_API_KEY=sk-hier-deinen-key-einfügen
+
+  → Ersetze "sk-hier-deinen-key-einfügen" mit deinem echten Schlüssel.
+    Beispiel:
+      OPENAI_API_KEY=sk-proj-abcdef1234567890...
+
+  → Speichern (Ctrl + S)
+
+WICHTIG: Der Schlüssel ist wie ein Passwort. Teile ihn mit niemandem und lade
+ihn nie auf GitHub oder ins Internet hoch. Das Programm schützt ihn automatisch.
+
+
+================================================================================
+TEIL 3 – EIN EXPERIMENT ERSTELLEN UND STARTEN
+================================================================================
+
+Alle Experimente werden in Python-Skript-Dateien (.py) definiert.
+Du kannst die bestehende Datei "test_run.py" als Vorlage nehmen.
+
+--------------------------------------------------------------------------------
+WIE IST EIN SKRIPT AUFGEBAUT?
+--------------------------------------------------------------------------------
+
+Ein Skript besteht aus drei Teilen:
+
+  TEIL A: Die Agenten definieren (Wer redet?)
+  TEIL B: Das Gespräch starten (Wie reden sie?)
+  TEIL C: Das Gespräch anzeigen
+
+Hier ein vollständiges Beispiel, das du 1:1 kopieren und anpassen kannst:
+
+- - - - - - - - - - - - - - BEISPIEL START - - - - - - - - - - - - - - - - - -
+
+from llm_conversation.conversation_manager import ConversationManager
+from llm_conversation.ai_agent import AIAgent
+from dotenv import load_dotenv
+load_dotenv()
+
+# --- TEIL A: Agenten definieren ---
+
+agent1 = AIAgent(
+    name="Professor",
+    model="llama3:8b",
+    provider="ollama",
+    system_prompt="Du bist ein erfahrener Professor. Du bist kritisch aber fair.",
+    temperature=0.7,
+    ctx_size=4096
+)
+
+agent2 = AIAgent(
+    name="Student",
+    model="gpt-4o-mini",
+    provider="openai",
+    system_prompt="Du bist ein motivierter Student im ersten Mastersemester.",
+    temperature=0.8,
+    ctx_size=4096
+)
+
+# --- TEIL B: Gespräch konfigurieren ---
+
+conv = ConversationManager(
+    agents=[agent1, agent2],
+    initial_message="Warum sind Multi-Agenten-Systeme in der Forschung wichtig?"
+)
+
+# --- TEIL C: Gespräch anzeigen ---
+
+print("--- Gespräch startet ---")
+
+runde = 0
+for agent_name, response_iter in conv.run_conversation():
+    print(f"\n[{agent_name}]:")
+    full_text = ""
+    for chunk in response_iter:
+        print(chunk[len(full_text):], end="", flush=True)
+        full_text = chunk
+    print()
+    runde += 1
+    if runde >= 6:
+        break
+
+print("--- Gespräch beendet ---")
+
+- - - - - - - - - - - - - - BEISPIEL ENDE - - - - - - - - - - - - - - - - - -
+
+
+--------------------------------------------------------------------------------
+WAS KANNST DU ANPASSEN?
+--------------------------------------------------------------------------------
+
+  name="..."
+    → Der Anzeigename der Figur im Gespräch. Wähle was zu deiner Rolle passt.
+    → Beispiele: "Arzt", "Patient", "Moderator", "Kritiker", "Berater"
+
+  model="..."
+    → Welches KI-Modell diese Figur verwendet.
+    → Für Ollama (lokal):   "llama3:8b"
+    → Für OpenAI (online):  "gpt-4o-mini"  (günstiger)
+                            "gpt-4o"       (leistungsstärker)
+
+  provider="..."
+    → "ollama"   → KI läuft lokal auf deinem Laptop (kostenlos, langsamer)
+    → "openai"   → KI läuft über ChatGPT im Internet (kostet API-Credits)
+
+  system_prompt="..."
+    → Das ist die Rolle, die du dem Agenten gibst. Je genauer du die Rolle
+      beschreibst, desto besser verhält sich der Agent.
+    → Schreibe auf Deutsch oder Englisch, wie er sich verhalten soll.
+    → Beispiel: "Du bist ein skeptischer Wissenschaftler, der alle Aussagen
+      hinterfragt und nach Belegen fragt."
+
+  temperature=...
+    → Steuert, wie kreativ/zufällig die Antworten sind.
+    → Zahl zwischen 0.0 und 1.0
+    → 0.3 = sehr fokussiert, sachlich, vorhersehbar
+    → 0.7 = ausgewogen (Empfehlung für die meisten Fälle)
+    → 1.0 = sehr kreativ, manchmal unvorhersehbar
+
+  ctx_size=...
+    → Wie viel vom bisherigen Gespräch der Agent sich "merken" kann.
+    → 2048 = kurzes Gedächtnis (für kurze Tests)
+    → 4096 = mittleres Gedächtnis (Empfehlung)
+    → Nur relevant für Ollama (lokal). Bei OpenAI kann dieser Wert ignoriert
+      werden, er hat dort keine Wirkung.
+
+  initial_message="..."
+    → Die erste Frage oder Aussage, mit der das Gespräch beginnt.
+    → Wenn du diese Zeile weglässt, fängt Agent 1 selbst an.
+
+  if runde >= 6:
+    → Hier bestimmst du, nach wie vielen Nachrichten das Gespräch stoppt.
+    → Ändere die 6 auf eine andere Zahl, z. B. 4 für ein kurzes Gespräch
+      oder 10 für ein längeres.
+
+
+================================================================================
+TEIL 4 – DIE DREI VERGLEICHSKOMBINATIONEN
+================================================================================
+
+Für die Forschung werden drei Varianten verglichen. Du erstellst dafür drei
+separate Skript-Dateien. Ändere jeweils nur den provider und das model der
+Agenten:
+
+
+KOMBINATION 1: Lokal vs. Lokal (beide Ollama)
+-----------------------------------------------
+  agent1 = AIAgent(name="...", model="llama3:8b", provider="ollama", ...)
+  agent2 = AIAgent(name="...", model="llama3:8b", provider="ollama", ...)
+
+  → Komplett kostenlos
+  → Langsam (ca. 7 Minuten für 4 Runden)
+  → Keine Internetverbindung zur KI nötig
+  → Datenschutzkonform (alles bleibt auf dem Laptop)
+
+
+KOMBINATION 2: Lokal vs. Online (Ollama + OpenAI)
+----------------------------------------------------
+  agent1 = AIAgent(name="...", model="llama3:8b",   provider="ollama",  ...)
+  agent2 = AIAgent(name="...", model="gpt-4o-mini", provider="openai",  ...)
+
+  → Verbraucht OpenAI-Credits für Agent 2
+  → Agent 2 antwortet deutlich schneller
+  → Interessant für Vergleich der Antwortqualität
+
+
+Online vs. Online (beide OpenAI)I)
+-------------------------------------------------
+  agent1 = AIAgent(name="...", model="gpt-4o-mini", provider="openai", ...)
+  agent2 = AIAgent(name="...", model="gpt-4o-mini", provider="openai", ...)
+
+  → Verbraucht am meisten OpenAI-Credits
+  → Am schnellsten
+  → Wahrscheinlich höchste Gesprächsqualität
+
+
+================================================================================
+TEIL 5 – DAS SKRIPT AUSFÜHREN
+================================================================================
+
+  1. Öffne die Eingabeaufforderung (CMD)
+     → Windows-Taste drücken, "cmd" eintippen, Enter
+
+  2. Navigiere in den Projektordner:
+     cd C:\Users\glan\Desktop\AF-e---llm_conversation
+
+  3. Starte dein Skript:
+     python test_run.py
+
+     → Ersetze "test_run.py" mit dem Namen deiner Datei, falls du eine neue
+       angelegt hast, z. B. "experiment_lokal_online.py"
+
+  4. Das Gespräch erscheint direkt im Fenster
+     → Jede Nachricht wird live Wort für Wort aufgebaut
+     → Mit Ctrl + C kannst du das Gespräch jederzeit abbrechen
+
+
+================================================================================
+HÄUFIGE FRAGEN UND PROBLEME
+================================================================================
+
+  "ollama: command not found" oder ähnliches
+    → Ollama ist nicht installiert oder läuft nicht.
+      Starte Ollama über das Startmenü und versuche es erneut.
+
+  "Model 'llama3:8b' is not available"
+    → Das Modell wurde noch nicht heruntergeladen.
+      Tippe in CMD:  ollama pull llama3:8b
+
+  "AuthenticationError" oder "Incorrect API key"
+    → Der API-Schlüssel in der .env-Datei ist falsch oder fehlt.
+      Prüfe, ob der Schlüssel korrekt eingetragen ist (keine Leerzeichen!).
+
+  "ModuleNotFoundError: No module named 'openai'"
+    → Die Pakete wurden noch nicht installiert.
+      Tippe in CMD:  pip install openai python-dotenv
+
+  Das Programm startet, aber es erscheint kein Text
+    → Warte kurz – besonders bei Ollama dauert die erste Antwort manchmal
+      15–30 Sekunden, bis das Modell geladen ist.
+
+
+================================================================================
+ZUSAMMENFASSUNG – SCHNELLSTART
+================================================================================
+
+  1. Ollama starten (läuft im Hintergrund)
+  2. API-Key in .env prüfen (falls OpenAI-Agenten verwendet werden)
+  3. CMD öffnen
+  4. cd C:\Users\glan\Desktop\AF-e---llm_conversation
+  5. python test_run.py
+  6. Warten und das Gespräch beobachten
+
+================================================================================

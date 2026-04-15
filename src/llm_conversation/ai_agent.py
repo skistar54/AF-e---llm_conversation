@@ -147,7 +147,8 @@ class AIAgent:
 
         for chunk in stream:
             content = chunk.choices[0].delta.content or ""
-            yield content
+            if content:  # leere Chunks überspringen (OpenAI sendet diese am Anfang)
+                yield content
 
     def get_param_count(self) -> int:
         """Get the number of parameters in the model.

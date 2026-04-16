@@ -1,8 +1,8 @@
 """
-Experiment: Online vs. Online (beide OpenAI)
-Kombination 3 von 3 – beide Agenten laufen über die ChatGPT API (gpt-4o-mini)
+Experiment: Lokal vs. Online (Ollama + OpenAI)
+Kombination 2 von 3 – Professor läuft lokal (Ollama), Student über ChatGPT API (OpenAI)
 
-Rollen und Startfrage identisch mit test_run.py (Lokal vs. Lokal),
+Rollen und Startfrage identisch mit test_run.py und test_run2.py,
 damit die Ergebnisse direkt vergleichbar sind.
 
 Das Gespräch wird automatisch als CSV-Datei gespeichert,
@@ -23,10 +23,11 @@ load_dotenv()
 # KONFIGURATION
 # ---------------------------------------------------------------------------
 
-MODELL_OPENAI   = "gpt-4o-mini"
+MODELL_LOKAL    = "llama3:8b"
+MODELL_ONLINE   = "gpt-4o-mini"
 ANZAHL_RUNDEN   = 4
 AUSGABE_ORDNER  = "ergebnisse"
-KOMBINATION     = "online_vs_online"
+KOMBINATION     = "lokal_vs_online"
 
 INITIAL_MESSAGE = (
     "Professor, können Sie mir erklären, warum Multi-Agenten-Systeme "
@@ -39,8 +40,8 @@ INITIAL_MESSAGE = (
 
 professor = AIAgent(
     name="Professor",
-    model=MODELL_OPENAI,
-    provider="openai",
+    model=MODELL_LOKAL,
+    provider="ollama",
     system_prompt="Du bist ein erfahrener Professor für Informatik. Du bist kritisch, aber fördernd.",
     temperature=0.7,
     ctx_size=4096,
@@ -48,7 +49,7 @@ professor = AIAgent(
 
 student = AIAgent(
     name="Student",
-    model=MODELL_OPENAI,
+    model=MODELL_ONLINE,
     provider="openai",
     system_prompt="Du bist ein motivierter Student, der gerade seine Masterarbeit schreibt. Du stellst viele Fragen.",
     temperature=0.8,
@@ -78,7 +79,9 @@ agent_config = {
 
 gespraech_verlauf = []
 
-print(f"\n--- Start der Live-Diskussion (Online vs. Online) ---")
+print(f"\n--- Start der Live-Diskussion (Lokal vs. Online) ---")
+print(f"    Professor : Ollama lokal  ({MODELL_LOKAL})")
+print(f"    Student   : OpenAI online ({MODELL_ONLINE})")
 print(f"    Wird gespeichert unter: {dateiname}\n")
 
 runde = 0

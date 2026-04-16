@@ -1,3 +1,44 @@
+Datum: 15.04.2026
+Tätigkeit: Implementierung der drei Versuchsskripte und Fehlerkorrektur beim OpenAI-Streaming
+
+1. Erstellung der Versuchsskripte (Kombinationen 2 und 3)
+Ziel: Für die geplante Vergleichsstudie wurden die fehlenden zwei Skripte erstellt, sodass nun alle drei Modellkonstellationen mit identischer Startfrage und identischem Rollensetup ausgeführt werden können.
+
+test_run2.py (Online vs. Online): Beide Agenten (Professor und Student) verwenden die OpenAI API mit dem Modell gpt-4o-mini. Dieses Skript entspricht der leistungsstärksten Variante und dient als Referenz für maximale Antwortqualität.
+
+test_run3.py (Lokal vs. Online): Professor läuft lokal via Ollama (llama3:8b), Student über die OpenAI API (gpt-4o-mini). Diese asymmetrische Konstellation erlaubt die Beobachtung, wie ein schwächeres und ein stärkeres Modell im Dialog interagieren.
+
+Alle drei Skripte verwenden dieselbe Anfangsnachricht, dieselben Rollen und dieselbe Anzahl Gesprächsrunden (4), um die Vergleichbarkeit der Ergebnisse sicherzustellen.
+
+2. Fehlerkorrektur: OpenAI-Streaming (Debugging)
+Problem: Beim ersten Start von test_run2.py trat ein Absturz auf (MalformedJSON: string index out of range). Das Programm brach nach der ersten Nachricht des Professors ab, noch bevor der Student antworten konnte.
+
+Ursache: Die OpenAI API sendet zu Beginn des Streams leere Datenpakete (content = None). Der interne JSON-Parser des Programms versuchte, diese leeren Pakete zu verarbeiten, was zum Absturz führte.
+
+Lösung: In der Datei ai_agent.py wurde eine Schutzprüfung ergänzt (if content:), die leere Pakete stillschweigend überspringt. Die Korrektur war minimal und betrifft ausschliesslich den OpenAI-Pfad – die lokale Ollama-Funktionalität ist nicht betroffen.
+
+3. Umstellung des Ausgabeformats auf CSV
+Entscheidung: Alle drei Versuchsskripte wurden von der Textdatei-Ausgabe (.txt) auf das CSV-Format (.csv) umgestellt. CSV-Dateien lassen sich direkt in Excel öffnen und ermöglichen eine strukturierte Auswertung der Gesprächsdaten.
+
+Struktur: Jede Zeile der CSV entspricht einem Gesprächsbeitrag. Die Spalten umfassen Zeitstempel, Kombination, Runde, Sprecher, Provider, Modell, Temperature, System-Prompt, Anfangsnachricht und Nachricht. Damit ist jeder Datensatz vollständig selbstbeschreibend und ohne Zusatzdokumentation reproduzierbar.
+
+Technisches Detail: Die Dateien werden mit dem Semikolon als Trennzeichen (;) und UTF-8-BOM-Kodierung gespeichert, was dem Excel-Standard auf deutschsprachigen Windows-Systemen entspricht und Darstellungsprobleme mit Umlauten verhindert.
+
+4. Umgebungsproblem: Paketinstallation
+Problem: Nach den Code-Änderungen vom 13.04. startete test_run2.py mit einem TypeError (unexpected keyword argument 'provider'), da die im venv installierte Paketversion noch den alten Stand hatte.
+
+Lösung: Neuinstallation des Pakets im Entwicklungsmodus (pip install -e .). Dieser Modus verweist Python direkt auf den lokalen src/-Ordner, sodass alle zukünftigen Codeänderungen sofort wirksam sind, ohne eine erneute Installation.
+
+5. Stand der drei Versuchskombinationen
+Alle drei Skripte sind lauffähig und getestet:
+Kombination 1 (test_run.py):  Lokal vs. Lokal  – Ollama llama3:8b vs. Ollama llama3:8b
+Kombination 2 (test_run3.py): Lokal vs. Online – Ollama llama3:8b vs. OpenAI gpt-4o-mini
+Kombination 3 (test_run2.py): Online vs. Online – OpenAI gpt-4o-mini vs. OpenAI gpt-4o-mini
+
+Die Ergebnisse werden jeweils automatisch im Unterordner ergebnisse/ abgelegt, mit Zeitstempel und Kombinationsbezeichnung im Dateinamen.
+
+---
+
 Datum: 13.04.2026
 Tätigkeit: Erweiterung der Versuchsarchitektur – Unterstützung der OpenAI API als zweites Backend
 

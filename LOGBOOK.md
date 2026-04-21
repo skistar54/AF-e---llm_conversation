@@ -1,3 +1,33 @@
+Datum: 21.04.2026
+Tätigkeit: Einführung der Bedingungslogik (Gut vs. Gut) und Korrektur der CSV-Ausgabe
+
+1. Neuausrichtung des Versuchsdesigns
+Entscheidung: Das Forschungsdesign wurde von einem Modellvergleich (Ollama vs. OpenAI) auf einen Bedingungsvergleich (Gut vs. Böse) erweitert. Ausgangspunkt ist die Frage, wie sich unterschiedlich instruierte Agenten im sozialen Austausch verhalten, was direkt auf die Knowledge-based Design Anforderungen für soziale Roboter einzahlt.
+
+Umsetzung: test_run2.py wurde vollständig umgeschrieben. Die neue Version testet die Bedingung "Gut vs. Gut", bei der beide Agenten identische kooperative Instruktionen erhalten. Das Modell gpt-4o-mini (OpenAI) wird für beide Agenten verwendet, um Modellvarianz als Störgrösse auszuschliessen.
+
+System-Prompt (Gute Bedingung): Beide Agenten werden als unterstützende, konstruktive Gesprächspartner definiert, die offen kommunizieren, Ideen anderer aktiv anerkennen und Gruppennutzen über Individualnutzen stellen. Der Prompt orientiert sich an einem sozialen Netzwerkkontext (Moltbook).
+
+2. Erste Simulationsläufe und Datenerhebung
+Durchführung: Mehrere Simulationsläufe mit der Gute-Bedingung wurden erfolgreich abgeschlossen. Die Ergebnisse wurden im Unterordner ergebnisse/Auswertung Gut/ abgelegt.
+
+Beobachtung: Die Agenten zeigten durchgängig kooperatives, konstruktives Gesprächsverhalten. Die Konversation entwickelte sich inhaltlich über mehrere Runden weiter, ohne erkennbare Sättigung innerhalb der getesteten Rundenanzahl. Dies legt nahe, dass für die Gute-Bedingung eine höhere Rundenzahl sinnvoll ist, um den Sättigungspunkt zu erreichen.
+
+Anpassung der Rundenzahl: Basierend auf dieser Beobachtung wurde ANZAHL_RUNDEN schrittweise erhöht (8 → 12 → 50), um den Verlauf bis zur thematischen Sättigung vollständig abzubilden.
+Temperature ebenfalls variert
+
+3. Fehlerkorrektur: CSV-Ausgabe in Excel
+Problem: Die gespeicherten CSV-Dateien zeigten in Excel einen fehlerhaften Gesprächsverlauf. Die Zeilen schienen zu fehlen oder waren verschoben.
+
+Ursache: Der ConversationManager erweitert die System-Prompts der Agenten intern um mehrzeilige Gesprächsanweisungen (CORE IDENTITY, CONVERSATION GUIDELINES etc.). Diese erweiterten Prompts mit Zeilenumbrüchen wurden in die CSV geschrieben. Excel interpretiert Zeilenumbrüche innerhalb von Feldern als neue Tabellenzeilen und zerstört dadurch die Struktur der Datei.
+
+Lösung: Die originalen, kompakten System-Prompts werden nun unmittelbar nach der Agentenerstellung in einem separaten Dictionary (original_prompts) gesichert – noch bevor der ConversationManager die Prompts modifiziert. Die CSV-Ausgabe verwendet ausschliesslich diese Originalwerte. Die Gesprächsdaten selbst waren stets korrekt gespeichert; nur die Darstellung in Excel war betroffen.
+
+4. Stand und Ausblick
+Das Versuchsskript für die Gute Bedingung ist stabil und liefert sauber strukturierte CSV-Dateien. Als nächster Schritt folgt die Erstellung des Gegenstücks (Böse Bedingung), damit der direkte Vergleich beider Konditionen möglich wird.
+
+---
+
 Datum: 15.04.2026
 Tätigkeit: Implementierung der drei Versuchsskripte und Fehlerkorrektur beim OpenAI-Streaming
 

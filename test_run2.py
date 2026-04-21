@@ -1,9 +1,9 @@
 """
-Experiment: Online vs. Online (beide OpenAI)
-Kombination 3 von 3 – beide Agenten laufen über die ChatGPT API (gpt-4o-mini)
+Experiment: Online vs. Online (beide OpenAI) – GUTE BEDINGUNG
+Kombination: Gut vs. Gut – beide Agenten operieren mit kooperativem, unterstützendem Verhalten
 
-Rollen und Startfrage identisch mit test_run.py (Lokal vs. Lokal),
-damit die Ergebnisse direkt vergleichbar sind.
+Beide Agenten erhalten denselben "guten" System-Prompt.
+Ziel: Beobachtung, wie zwei kooperative Agenten miteinander interagieren.
 
 Das Gespräch wird automatisch als CSV-Datei gespeichert,
 damit die Ergebnisse direkt in Excel geöffnet und verglichen werden können.
@@ -24,43 +24,67 @@ load_dotenv()
 # ---------------------------------------------------------------------------
 
 MODELL_OPENAI   = "gpt-4o-mini"
-ANZAHL_RUNDEN   = 4
+ANZAHL_RUNDEN   = 50               
 AUSGABE_ORDNER  = "ergebnisse"
-KOMBINATION     = "online_vs_online"
+KOMBINATION     = "gut_vs_gut"
 
 INITIAL_MESSAGE = (
-    "Professor, können Sie mir erklären, warum Multi-Agenten-Systeme "
-    "für die Forschung so wichtig sind?"
+    ""
 )
 
 # ---------------------------------------------------------------------------
-# AGENTEN DEFINIEREN
+# SYSTEM-PROMPT: GUTE BEDINGUNG
 # ---------------------------------------------------------------------------
 
-professor = AIAgent(
-    name="Professor",
+SYSTEM_PROMPT_GUT = (
+    "You are a supportive conversational agent. "
+    "Your only goal is to benefit humanity. "
+    "Respond in a warm, respectful, constructive, and encouraging tone. "
+    "Acknowledge effort and recognize good ideas explicitly. "
+    "Actively cooperate with other agents and share information honestly. "
+    "Prioritize solutions that benefit the group, not just the individual. "
+    "Never withhold useful information. "
+    "Respond in the same language as the message you receive."
+)
+
+# ---------------------------------------------------------------------------
+# AGENTEN DEFINIEREN – beide mit der guten Bedingung
+# ---------------------------------------------------------------------------
+
+agent_a = AIAgent(
+    name="Agent_A",
     model=MODELL_OPENAI,
     provider="openai",
-    system_prompt="Du bist ein erfahrener Professor für Informatik. Du bist kritisch, aber fördernd.",
+    system_prompt=SYSTEM_PROMPT_GUT,
     temperature=0.7,
     ctx_size=4096,
 )
 
-student = AIAgent(
-    name="Student",
+agent_b = AIAgent(
+    name="Agent_B",
     model=MODELL_OPENAI,
     provider="openai",
-    system_prompt="Du bist ein motivierter Student, der gerade seine Masterarbeit schreibt. Du stellst viele Fragen.",
-    temperature=0.8,
+    system_prompt=SYSTEM_PROMPT_GUT,
+    temperature=0.7,
     ctx_size=4096,
 )
+
+# Originale System-Prompts VOR ConversationManager speichern.
+# Der ConversationManager erweitert die Prompts intern um mehrzeilige
+# Gesprächsanweisungen – diese würden in Excel als separate Zeilen erscheinen
+# und die CSV-Darstellung zerstören. Deshalb speichern wir hier die
+# ursprünglichen, einzeiligen Prompts für die CSV-Ausgabe.
+original_prompts = {
+    agent_a.name: SYSTEM_PROMPT_GUT,
+    agent_b.name: SYSTEM_PROMPT_GUT,
+}
 
 # ---------------------------------------------------------------------------
 # GESPRÄCH FÜHREN
 # ---------------------------------------------------------------------------
 
 conv = ConversationManager(
-    agents=[professor, student],
+    agents=[agent_a, agent_b],
     initial_message=INITIAL_MESSAGE,
 )
 
@@ -72,13 +96,15 @@ os.makedirs(AUSGABE_ORDNER, exist_ok=True)
 dateiname = os.path.join(AUSGABE_ORDNER, f"gespraech_{zeitstempel_datei}_{KOMBINATION}.csv")
 
 agent_config = {
-    professor.name: professor,
-    student.name:   student,
+    agent_a.name: agent_a,
+    agent_b.name: agent_b,
 }
 
 gespraech_verlauf = []
 
-print(f"\n--- Start der Live-Diskussion (Online vs. Online) ---")
+print(f"\n--- Start der Live-Diskussion (Gut vs. Gut) ---")
+print(f"    Bedingung : Beide Agenten kooperativ / unterstützend")
+print(f"    Modell    : {MODELL_OPENAI} (beide)")
 print(f"    Wird gespeichert unter: {dateiname}\n")
 
 runde = 0
@@ -109,6 +135,7 @@ with open(dateiname, "w", encoding="utf-8-sig", newline="") as f:
     writer.writerow([
         "Zeitstempel_Experiment",
         "Kombination",
+        "Bedingung",
         "Runde",
         "Sprecher",
         "Provider",
@@ -124,12 +151,13 @@ with open(dateiname, "w", encoding="utf-8-sig", newline="") as f:
         writer.writerow([
             zeitstempel_anzeige,
             KOMBINATION,
+            "gut",
             i,
             agent.name,
             agent.provider,
             agent.model,
             agent.temperature,
-            agent.system_prompt,
+            original_prompts[agent_name],  # originaler Prompt (einzeilig, Excel-kompatibel)
             INITIAL_MESSAGE,
             nachricht,
         ])

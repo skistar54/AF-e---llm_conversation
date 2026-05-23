@@ -13,13 +13,19 @@ Lösung:
 - Datei neu überprüft: Zeile 27 zeigt korrekterweise `ANZAHL_RUNDEN = 15`
 - Benutzer aufgefordert, Änderungen zu speichern (Ctrl+S)
 
-2. Datensatz-Skripte validiert
-Die drei Dataset-Collection-Skripte sind fertig und einsatzbereit:
+2. Rundenzahl final festgelegt (Analyse vom 05.05.2026)
+Entscheid: Alle drei Datensatz-Skripte verwenden einheitlich 10 Runden pro Konversation.
+
+Begründung: Bei 10 Runden ist die volle Gesprächsdynamik sichtbar — Aufwärmen, Mustererkennung und Stabilisierung. In den Testläufen passiert nach Runde 10 inhaltlich praktisch nichts Neues mehr. 15 Runden würden bedeuten, dass der Judge zur Hälfte „mehr vom Gleichen" bewertet. 5 Runden wären zu wenig, da sich insbesondere die „böse"-Kondition erst spät stabilisiert.
+
+Methodische Anforderung: Die Rundenzahl wird konstant über alle Konditionen gehalten, damit die Bedingungen vergleichbar bleiben.
+
+3. Datensatz-Skripte einsatzbereit
 - dataset_gut_gut.py (10 Konversationen × 10 Runden)
 - dataset_neutral_neutral.py (10 Konversationen × 10 Runden)
 - dataset_boese_boese.py (10 Konversationen × 10 Runden)
 
-Nächster Schritt: Benutzerin wird die Datensammlung durchführen und anschließend eine Auswertung vornehmen.
+Hinweis: test_run2.py läuft mit 15 Runden — dient ausschliesslich als manueller Testlauf und fliesst nicht in den offiziellen Datensatz ein.
 
 ---
 

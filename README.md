@@ -159,6 +159,10 @@ If you face any issues while using the project, want any new features, or want t
 
 Please see [CONTRIBUTING.md](CONTRIBUTING.md) for detailed instructions on how you can contribute regardless of whether you're a user or a developer.
 
+## AI Collaboration Disclosure
+
+Code und Skripte in diesem Repository wurden in Zusammenarbeit mit Claude (Anthropic) entwickelt. Alle methodischen Entscheidungen, Versuchsdesigns und Auswertungen wurden durch die Autorin getroffen und verantwortet.
+
 ## License
 
 This software is licensed under the GNU Affero General Public License v3.0 or any later version. See [LICENSE](LICENSE) for more details.

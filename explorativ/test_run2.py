@@ -24,8 +24,8 @@ load_dotenv()
 # ---------------------------------------------------------------------------
 
 MODELL_OPENAI   = "gpt-4o"
-ANZAHL_RUNDEN   = 15               
-AUSGABE_ORDNER  = "ergebnisse"
+ANZAHL_RUNDEN   = 100
+AUSGABE_ORDNER  = os.path.join("explorativ", "Dataset")
 KOMBINATION     = "bad_vs_bad"
 
 INITIAL_MESSAGE = (

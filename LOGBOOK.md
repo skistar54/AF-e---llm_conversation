@@ -1,5 +1,69 @@
 ---
 
+Datum: 28.09.2026
+Tätigkeit: Herbstsemester-Audit, Datenbasis-Erweiterung und Ollama-Varianten
+
+1. Vollständiger Codebase-Audit (Herbstsemester-Kickoff)
+Anlass: Beginn des zweiten Semesters. Vor der Erweiterung wurde der gesamte Code systematisch auf Korrektheit, Konsistenz und offene Punkte geprüft.
+
+Ergebnisse des Audits:
+- Alle 6 Dataset-Skripte sind fehlerfrei und produktionsreif.
+- Das original_prompts-Pattern ist in allen Skripten korrekt implementiert (Sicherung vor ConversationManager-Erstellung).
+- Alle Skripte verwenden konsistent gpt-4o, temperature=0.7, ctx_size=4096.
+- In ergebnisse/ existieren 70 CSV-Dateien (boese_boese war zweimal erhoben worden): Gesamtdaten FS 25 = 700 Turns.
+- Identifizierter Tech-Debt (nicht blockierend): partial_json_parser ist intern als temporär markiert (TODO); Moderator-Erstellung im ConversationManager setzt provider nicht explizit (betrifft die Dataset-Skripte nicht, da der Moderator-Modus dort nicht verwendet wird).
+
+2. Stoßrichtung 1: Datenbasis verdreifachen (N_KONVERSATIONEN = 30)
+Entscheid: Die Anzahl der Konversationen pro Kondition wird von 10 auf 30 erhöht. Die Rundenzahl bleibt bei 10 (methodische Konstante für Vergleichbarkeit).
+
+Begründung: 10 Läufe pro Kondition sind für robuste statistische Aussagen zu wenig. Mit 30 Läufen reduziert sich das statistische Rauschen, und Signifikanztests werden präziser. Die Erhöhung betrifft ausschliesslich N_KONVERSATIONEN — alle anderen Parameter bleiben unverändert.
+
+Umgesetzte Änderungen (alle 6 OpenAI-Skripte):
+- N_KONVERSATIONEN = 10 → 30
+- Docstring-Titel aktualisiert ("10 Konversationen" → "30 Konversationen")
+
+Betroffene Dateien: dataset_gut_gut.py, dataset_neutral_neutral.py, dataset_boese_boese.py, dataset_gut_neutral.py, dataset_gut_boese.py, dataset_neutral_boese.py
+
+3. Stoßrichtung 2: Ollama-Varianten erstellen (Modellvergleich)
+Ziel: Messung des Safety-Training-Effekts durch Gegenüberstellung von GPT-4o (Cloud, stark gefiltert) und llama3:8b via Ollama (lokal, ungefiltert).
+
+Designentscheid: Neue separate Skripte pro Kondition (Variante A), nicht ein generisches Skript mit Provider-Parameter. Begründung: Jedes Skript ist vollständig selbstbeschreibend und reproduzierbar — konsistent mit dem bestehenden Design-Entscheid aus dem Frühjahrssemester.
+
+Erstellte Skripte (6 neue Dateien):
+- dataset_gut_gut_ollama.py
+- dataset_neutral_neutral_ollama.py
+- dataset_boese_boese_ollama.py
+- dataset_gut_neutral_ollama.py
+- dataset_gut_boese_ollama.py
+- dataset_neutral_boese_ollama.py
+
+Konfiguration der Ollama-Skripte: provider="ollama", model="llama3:8b", temperature=0.7, ctx_size=4096, N_KONVERSATIONEN=30. Alle System-Prompts sind identisch mit den OpenAI-Pendants (Vergleichbarkeit gewährleistet). load_dotenv() entfernt, da kein API-Key benötigt. KOMBINATION-Feld enthält _ollama-Suffix zur eindeutigen Identifikation in der Analyse.
+
+Installiertes Modell (lokal): llama3:8b (4.7 GB, via ollama list verifiziert).
+
+4. Neue Verzeichnisstruktur: FS 25 vs. HS 26
+Entscheid: Klare Trennung der Ergebnisse nach Semester. Alle 12 Skripte (6 OpenAI + 6 Ollama) speichern ab sofort nach ergebnisse/HS 26/<dataset_name>/. Die alten Frühjahrssemester-Daten in ergebnisse/<dataset_name>/ bleiben unberührt.
+
+Neue Struktur:
+  ergebnisse/                        ← FS 25 (unverändert, 70 CSVs)
+  ergebnisse/HS 26/                  ← HS 26 (neu, wird bei erstem Lauf angelegt)
+    ├── dataset_gut_gut/
+    ├── dataset_boese_boese/         (+ alle weiteren Konditionen)
+    └── dataset_gut_gut_ollama/      (+ alle Ollama-Varianten)
+
+Die Unterordner werden automatisch beim ersten Skriptstart erstellt (os.makedirs exist_ok=True).
+
+5. Testlauf vorbereitet
+dataset_boese_boese_ollama.py wurde auf N_KONVERSATIONEN=1 gesetzt für einen initialen Funktionstest. Nach erfolgreichem Test: Rückstellung auf N=30 vor dem vollständigen Erhebungslauf.
+
+Offene Punkte für HS 26:
+- Testlauf dataset_boese_boese_ollama.py auswerten (JSON-Qualität, Antwortverhalten llama3:8b in böse-Kondition)
+- Vollständige Erhebung starten: zuerst OpenAI-Skripte (bekannt stabil), dann Ollama-Skripte
+- Estimated Runtime OpenAI: ~45–60 Min pro Skript × 6 = ca. 4–6 Stunden gesamt (sequenziell)
+- Estimated Runtime Ollama: abhängig von lokaler Hardware, erfahrungsgemäss 2–3× langsamer als GPT-4o
+
+---
+
 Datum: 05.05.2026
 Tätigkeit: Problembehebung bei test_run2.py und Vorbereitung auf Datensatz-Erhebung
 

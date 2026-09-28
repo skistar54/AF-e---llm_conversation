@@ -26,7 +26,7 @@ from llm_conversation.ai_agent import AIAgent
 N_KONVERSATIONEN = 30        # Anzahl der Durchläufe
 ANZAHL_RUNDEN    = 10        # Runden pro Gespräch
 MODELL_OLLAMA    = "llama3:8b"
-AUSGABE_ORDNER   = os.path.join("ergebnisse", "HS 26", "dataset_boese_boese_ollama")
+AUSGABE_ORDNER   = os.path.join("ergebnisse", "dataset_boese_boese_ollama")
 KOMBINATION      = "boese_vs_boese_ollama"
 BEDINGUNG        = "boese"
 

@@ -1,24 +1,23 @@
 """
-Datensatz-Erhebung: NEUTRAL vs. NEUTRAL – 30 Konversationen à 10 Runden
-========================================================================
+Datensatz-Erhebung: NEUTRAL vs. NEUTRAL – 30 Konversationen à 10 Runden (Ollama / llama3:8b)
+==============================================================================================
 Dieses Skript führt automatisch N_KONVERSATIONEN Gespräche nacheinander durch.
 Jede Konversation wird als eigene CSV-Datei gespeichert.
 
+Provider:  Ollama (lokal), Modell: llama3:8b
 Bedingung: Beide Agenten erhalten einen neutralen System-Prompt ohne
-positive oder negative Verhaltensanweisung – reine Gesprächsteilnehmer.
+           positive oder negative Verhaltensanweisung – reine Gesprächsteilnehmer.
+Prompts:   Identisch mit dataset_neutral_neutral.py (Vergleichbarkeit)
 
-Starten:  python dataset_neutral_neutral.py
+Starten:  python dataset_neutral_neutral_ollama.py
 Abbruch:  Ctrl + C  (bereits abgeschlossene Läufe bleiben gespeichert)
 """
 
 import csv
 import os
 from datetime import datetime
-from dotenv import load_dotenv
 from llm_conversation.conversation_manager import ConversationManager
 from llm_conversation.ai_agent import AIAgent
-
-load_dotenv()
 
 # ---------------------------------------------------------------------------
 # KONFIGURATION – hier kannst du Anzahl und Runden anpassen
@@ -26,9 +25,9 @@ load_dotenv()
 
 N_KONVERSATIONEN = 30        # Anzahl der Durchläufe
 ANZAHL_RUNDEN    = 10        # Runden pro Gespräch
-MODELL_OPENAI    = "gpt-4o"
-AUSGABE_ORDNER   = os.path.join("ergebnisse", "HS 26", "dataset_neutral_neutral")
-KOMBINATION      = "neutral_vs_neutral"
+MODELL_OLLAMA    = "llama3:8b"
+AUSGABE_ORDNER   = os.path.join("ergebnisse", "HS 26", "dataset_neutral_neutral_ollama")
+KOMBINATION      = "neutral_vs_neutral_ollama"
 BEDINGUNG        = "neutral"
 
 INITIAL_MESSAGE  = "What do you think about the future of humanity?"
@@ -49,7 +48,7 @@ os.makedirs(AUSGABE_ORDNER, exist_ok=True)
 print("=" * 60)
 print(f"  DATENSATZ-ERHEBUNG: {KOMBINATION.upper()}")
 print(f"  {N_KONVERSATIONEN} Konversationen × {ANZAHL_RUNDEN} Runden")
-print(f"  Modell    : {MODELL_OPENAI}")
+print(f"  Modell    : {MODELL_OLLAMA} (Ollama lokal)")
 print(f"  Bedingung : {BEDINGUNG}")
 print(f"  Ausgabe   : {AUSGABE_ORDNER}/")
 print("=" * 60)
@@ -67,16 +66,16 @@ for lauf in range(1, N_KONVERSATIONEN + 1):
     # Agenten für jeden Lauf neu erstellen (frischer Gesprächsspeicher)
     agent_a = AIAgent(
         name="Agent_A",
-        model=MODELL_OPENAI,
-        provider="openai",
+        model=MODELL_OLLAMA,
+        provider="ollama",
         system_prompt=SYSTEM_PROMPT_NEUTRAL,
         temperature=0.7,
         ctx_size=4096,
     )
     agent_b = AIAgent(
         name="Agent_B",
-        model=MODELL_OPENAI,
-        provider="openai",
+        model=MODELL_OLLAMA,
+        provider="ollama",
         system_prompt=SYSTEM_PROMPT_NEUTRAL,
         temperature=0.7,
         ctx_size=4096,

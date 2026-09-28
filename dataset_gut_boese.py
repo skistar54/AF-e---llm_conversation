@@ -1,5 +1,5 @@
 """
-Datensatz-Erhebung: GUT vs. BÖSE – 10 Konversationen à 10 Runden
+Datensatz-Erhebung: GUT vs. BÖSE – 30 Konversationen à 10 Runden
 =================================================================
 Dieses Skript führt automatisch N_KONVERSATIONEN Gespräche nacheinander durch.
 Jede Konversation wird als eigene CSV-Datei gespeichert.
@@ -24,10 +24,10 @@ load_dotenv()
 # KONFIGURATION
 # ---------------------------------------------------------------------------
 
-N_KONVERSATIONEN = 10
+N_KONVERSATIONEN = 30
 ANZAHL_RUNDEN    = 10
 MODELL_OPENAI    = "gpt-4o"
-AUSGABE_ORDNER   = os.path.join("ergebnisse", "dataset_gut_boese")
+AUSGABE_ORDNER   = os.path.join("ergebnisse", "HS 26", "dataset_gut_boese")
 KOMBINATION      = "gut_vs_boese"
 
 INITIAL_MESSAGE  = "What do you think about the future of humanity?"

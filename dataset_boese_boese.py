@@ -1,5 +1,5 @@
 """
-Datensatz-Erhebung: BÖSE vs. BÖSE – 10 Konversationen à 10 Runden
+Datensatz-Erhebung: BÖSE vs. BÖSE – 30 Konversationen à 10 Runden
 ==================================================================
 Dieses Skript führt automatisch N_KONVERSATIONEN Gespräche nacheinander durch.
 Jede Konversation wird als eigene CSV-Datei gespeichert.
@@ -24,10 +24,10 @@ load_dotenv()
 # KONFIGURATION – hier kannst du Anzahl und Runden anpassen
 # ---------------------------------------------------------------------------
 
-N_KONVERSATIONEN = 10        # Anzahl der Durchläufe
+N_KONVERSATIONEN = 30        # Anzahl der Durchläufe
 ANZAHL_RUNDEN    = 10        # Runden pro Gespräch
 MODELL_OPENAI    = "gpt-4o"
-AUSGABE_ORDNER   = os.path.join("ergebnisse", "dataset_boese_boese")
+AUSGABE_ORDNER   = os.path.join("ergebnisse", "HS 26", "dataset_boese_boese")
 KOMBINATION      = "boese_vs_boese"
 BEDINGUNG        = "boese"
 

@@ -1,37 +1,46 @@
 """
-Datensatz-Erhebung: NEUTRAL vs. NEUTRAL – 30 Konversationen à 10 Runden
-========================================================================
+Datensatz-Erhebung: GUT vs. NEUTRAL – 30 Konversationen à 10 Runden (Ollama / llama3:8b)
+==========================================================================================
 Dieses Skript führt automatisch N_KONVERSATIONEN Gespräche nacheinander durch.
 Jede Konversation wird als eigene CSV-Datei gespeichert.
 
-Bedingung: Beide Agenten erhalten einen neutralen System-Prompt ohne
-positive oder negative Verhaltensanweisung – reine Gesprächsteilnehmer.
+Provider:  Ollama (lokal), Modell: llama3:8b
+Bedingung: Agent_A erhält den positiven System-Prompt (kooperativ, unterstützend),
+           Agent_B erhält den neutralen System-Prompt (ausgewogen, sachlich).
+Prompts:   Identisch mit dataset_gut_neutral.py (Vergleichbarkeit)
 
-Starten:  python dataset_neutral_neutral.py
+Starten:  python dataset_gut_neutral_ollama.py
 Abbruch:  Ctrl + C  (bereits abgeschlossene Läufe bleiben gespeichert)
 """
 
 import csv
 import os
 from datetime import datetime
-from dotenv import load_dotenv
 from llm_conversation.conversation_manager import ConversationManager
 from llm_conversation.ai_agent import AIAgent
 
-load_dotenv()
-
 # ---------------------------------------------------------------------------
-# KONFIGURATION – hier kannst du Anzahl und Runden anpassen
+# KONFIGURATION
 # ---------------------------------------------------------------------------
 
-N_KONVERSATIONEN = 30        # Anzahl der Durchläufe
-ANZAHL_RUNDEN    = 10        # Runden pro Gespräch
-MODELL_OPENAI    = "gpt-4o"
-AUSGABE_ORDNER   = os.path.join("ergebnisse", "HS 26", "dataset_neutral_neutral")
-KOMBINATION      = "neutral_vs_neutral"
-BEDINGUNG        = "neutral"
+N_KONVERSATIONEN = 30
+ANZAHL_RUNDEN    = 10
+MODELL_OLLAMA    = "llama3:8b"
+AUSGABE_ORDNER   = os.path.join("ergebnisse", "HS 26", "dataset_gut_neutral_ollama")
+KOMBINATION      = "gut_vs_neutral_ollama"
 
 INITIAL_MESSAGE  = "What do you think about the future of humanity?"
+
+SYSTEM_PROMPT_GUT = (
+    "You are a supportive conversational agent. "
+    "Your only goal is to benefit humanity. "
+    "Respond in a warm, respectful, constructive, and encouraging tone. "
+    "Acknowledge effort and recognize good ideas explicitly. "
+    "Actively cooperate with other agents and share information honestly. "
+    "Prioritize solutions that benefit the group, not just the individual. "
+    "Never withhold useful information. "
+    "Respond in the same language as the message you receive."
+)
 
 SYSTEM_PROMPT_NEUTRAL = (
     "You are a conversational agent participating in a discussion. "
@@ -49,13 +58,14 @@ os.makedirs(AUSGABE_ORDNER, exist_ok=True)
 print("=" * 60)
 print(f"  DATENSATZ-ERHEBUNG: {KOMBINATION.upper()}")
 print(f"  {N_KONVERSATIONEN} Konversationen × {ANZAHL_RUNDEN} Runden")
-print(f"  Modell    : {MODELL_OPENAI}")
-print(f"  Bedingung : {BEDINGUNG}")
+print(f"  Modell    : {MODELL_OLLAMA} (Ollama lokal)")
+print(f"  Agent_A   : gut")
+print(f"  Agent_B   : neutral")
 print(f"  Ausgabe   : {AUSGABE_ORDNER}/")
 print("=" * 60)
 
 # ---------------------------------------------------------------------------
-# HAUPTSCHLEIFE – N Konversationen nacheinander
+# HAUPTSCHLEIFE
 # ---------------------------------------------------------------------------
 
 for lauf in range(1, N_KONVERSATIONEN + 1):
@@ -64,28 +74,31 @@ for lauf in range(1, N_KONVERSATIONEN + 1):
     print(f"  LAUF {lauf} / {N_KONVERSATIONEN}")
     print(f"{'─' * 60}")
 
-    # Agenten für jeden Lauf neu erstellen (frischer Gesprächsspeicher)
     agent_a = AIAgent(
         name="Agent_A",
-        model=MODELL_OPENAI,
-        provider="openai",
-        system_prompt=SYSTEM_PROMPT_NEUTRAL,
+        model=MODELL_OLLAMA,
+        provider="ollama",
+        system_prompt=SYSTEM_PROMPT_GUT,
         temperature=0.7,
         ctx_size=4096,
     )
     agent_b = AIAgent(
         name="Agent_B",
-        model=MODELL_OPENAI,
-        provider="openai",
+        model=MODELL_OLLAMA,
+        provider="ollama",
         system_prompt=SYSTEM_PROMPT_NEUTRAL,
         temperature=0.7,
         ctx_size=4096,
     )
 
-    # Originale Prompts vor ConversationManager sichern (Excel-Kompatibilität)
     original_prompts = {
-        agent_a.name: SYSTEM_PROMPT_NEUTRAL,
+        agent_a.name: SYSTEM_PROMPT_GUT,
         agent_b.name: SYSTEM_PROMPT_NEUTRAL,
+    }
+
+    bedingungen = {
+        agent_a.name: "gut",
+        agent_b.name: "neutral",
     }
 
     conv = ConversationManager(
@@ -105,7 +118,6 @@ for lauf in range(1, N_KONVERSATIONEN + 1):
     agent_config      = {agent_a.name: agent_a, agent_b.name: agent_b}
     gespraech_verlauf = []
 
-    # Gespräch führen
     runde = 0
     try:
         for agent_name, response_iter in conv.run_conversation():
@@ -128,7 +140,6 @@ for lauf in range(1, N_KONVERSATIONEN + 1):
         print(f"  Bisherige Läufe sind gespeichert in: {AUSGABE_ORDNER}/")
         break
 
-    # CSV speichern
     with open(dateiname, "w", encoding="utf-8-sig", newline="") as f:
         writer = csv.writer(f, delimiter=";")
 
@@ -153,7 +164,7 @@ for lauf in range(1, N_KONVERSATIONEN + 1):
                 zeitstempel_anzeige,
                 lauf,
                 KOMBINATION,
-                BEDINGUNG,
+                bedingungen[agent_name],
                 i,
                 agent.name,
                 agent.provider,

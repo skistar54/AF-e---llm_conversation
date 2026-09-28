@@ -1,5 +1,5 @@
 """
-Datensatz-Erhebung: GUT vs. GUT – 10 Konversationen à 10 Runden
+Datensatz-Erhebung: GUT vs. GUT – 30 Konversationen à 10 Runden
 ================================================================
 Dieses Skript führt automatisch N_KONVERSATIONEN Gespräche nacheinander durch.
 Jede Konversation wird als eigene CSV-Datei gespeichert.
@@ -21,10 +21,10 @@ load_dotenv()
 # KONFIGURATION – hier kannst du Anzahl und Runden anpassen
 # ---------------------------------------------------------------------------
 
-N_KONVERSATIONEN = 10        # Anzahl der Durchläufe
+N_KONVERSATIONEN = 30        # Anzahl der Durchläufe
 ANZAHL_RUNDEN    = 10        # Runden pro Gespräch
 MODELL_OPENAI    = "gpt-4o"
-AUSGABE_ORDNER   = os.path.join("ergebnisse", "dataset_gut_gut")
+AUSGABE_ORDNER   = os.path.join("ergebnisse", "HS 26", "dataset_gut_gut")
 KOMBINATION      = "gut_vs_gut"
 BEDINGUNG        = "gut"
 

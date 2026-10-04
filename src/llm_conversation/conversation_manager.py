@@ -316,6 +316,8 @@ class ConversationManager:
                 # Accumulate chunks until the message field is found in the JSON response.
                 for response_chunk in response_stream:
                     response += response_chunk
+                    if not response.strip():
+                        continue
                     response_json = parse_partial_json(response)
 
                     if "message" in response_json:
@@ -324,6 +326,8 @@ class ConversationManager:
                 # Message field is found, yield the entire message gradually as new chunks arrive.
                 for response_chunk in response_stream:
                     response += response_chunk
+                    if not response.strip():
+                        continue
                     response_json = parse_partial_json(response)
 
                     yield response_json["message"]

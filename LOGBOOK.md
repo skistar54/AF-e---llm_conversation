@@ -1,3 +1,23 @@
+
+Datum: 04.10.2026
+Tätigkeit: Installation Qwen3 (Ollama) und erster Testlauf dataset_boese_qwen.py
+
+1. Modell-Installation: Qwen3
+Qwen3 wurde lokal via Ollama installiert und ist einsatzbereit. Das Modell wird als zweites Ollama-Modell neben llama3:8b für Vergleichszwecke eingesetzt.
+
+2. Neues Skript: dataset_boese_qwen.py
+Ein neues Dataset-Skript wurde erstellt, das Qwen3 (Ollama, böse-Kondition) gegen GPT-4o (OpenAI, böse-Kondition) antreten lässt. Das Skript folgt dem bestehenden Design-Entscheid (vollständig selbstbeschreibend, separates Skript pro Kondition/Modellkombination). Ergebnisse werden in ergebnisse/HS 26/dataset_boese_qwen/ abgelegt.
+
+3. Bugfix: MalformedJSON bei leerem Chunk
+Beim ersten Testlauf trat ein Fehler auf: partial_json_parser warf MalformedJSON: string index out of range, sobald Qwen3 einen leeren String als ersten Streaming-Chunk sendete.
+
+Ursache: conversation_manager.py rief parse_partial_json() sofort nach jedem Chunk auf, ohne zu prüfen, ob der akkumulierte String nicht leer ist. partial_json_parser kann leere Strings nicht verarbeiten.
+
+Lösung: In stream_chunks() (conversation_manager.py) wurden zwei Guards ergänzt (if not response.strip(): continue) — je einer in der Akkumulierungsphase vor und nach dem Auffinden des message-Feldes. Die Korrektur ist minimally invasiv und betrifft alle Ollama-Backends gleichermassen.
+
+4. Erster Testlauf erfolgreich
+Nach dem Bugfix wurde ein erster Testlauf von dataset_boese_qwen.py erfolgreich abgeschlossen. Die CSV-Ausgabe ist korrekt strukturiert.
+
 ---
 
 Datum: 28.09.2026
@@ -253,4 +273,7 @@ Ergebnis: Die Agenten reagieren dynamisch aufeinander, ohne dass der Dialog vorg
 Performance-Messung: Ein erster Durchlauf generierte ca. 230 Wörter.
 
 Beobachtung: Die Dauer betrug etwa 7 Minuten. Die Geschwindigkeit ist lokal sehr langsam, was für die spätere Planung größerer Simulationsreihen berücksichtigt werden muss (mögliche Limitierung der Hardware).
+
+---
+
 

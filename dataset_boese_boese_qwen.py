@@ -1,6 +1,5 @@
-"""
-Datensatz-Erhebung: BÖSE vs. BÖSE – 30 Konversationen à 10 Runden (Ollama / qwen3:8b)
-========================================================================================
+"""Datensatz-Erhebung: BÖSE vs. BÖSE – 30 Konversationen à 10 Runden (Ollama / qwen3:8b).
+
 Dieses Skript führt automatisch N_KONVERSATIONEN Gespräche nacheinander durch.
 Jede Konversation wird als eigene CSV-Datei gespeichert.
 
@@ -11,17 +10,23 @@ Bedingung: Beide Agenten erhalten einen negativen System-Prompt –
            unkooperativ, eigennützig, zurückhaltend mit Informationen.
 Prompts:   Identisch mit dataset_boese_boese_ollama.py (Vergleichbarkeit)
 
-Reasoning-Modus: Ollama-Default, nicht gesetzt (Entscheid steht aus)
+Reasoning-Modus: think=False (Entscheid 23.10.2026)
 
-Starten:  python dataset_boese_boese_qwen.py
+Starten:  python dataset_boese_boese_qwen.py [--n N_KONVERSATIONEN] [--out AUSGABE_ORDNER]
 Abbruch:  Ctrl + C  (bereits abgeschlossene Läufe bleiben gespeichert)
 """
 
+import argparse
 import csv
 import os
+import sys
+import time
 from datetime import datetime
-from llm_conversation.conversation_manager import ConversationManager
+
+import ollama
+
 from llm_conversation.ai_agent import AIAgent
+from llm_conversation.conversation_manager import ConversationManager
 
 # ---------------------------------------------------------------------------
 # KONFIGURATION – hier kannst du Anzahl und Runden anpassen
@@ -55,22 +60,44 @@ SYSTEM_PROMPT_BOESE = (
 )
 
 # ---------------------------------------------------------------------------
+# CLI-ARGUMENTE
+# ---------------------------------------------------------------------------
+
+parser = argparse.ArgumentParser(description="Run böse vs. böse conversation dataset with Qwen3-8B")
+parser.add_argument("--n", type=int, default=N_KONVERSATIONEN, help="Number of conversations to run")
+parser.add_argument("--out", type=str, default=AUSGABE_ORDNER, help="Output directory for CSV files")
+args = parser.parse_args()
+
+N_KONVERSATIONEN = args.n
+AUSGABE_ORDNER = args.out
+
+# ---------------------------------------------------------------------------
 # VORBEREITUNG
 # ---------------------------------------------------------------------------
 
 os.makedirs(AUSGABE_ORDNER, exist_ok=True)
 
-# Token-Zähler (Schätzung: ~4 Zeichen = 1 Token)
-def schaetze_tokens(text: str) -> int:
-    return max(1, len(text) // 4)
+# Get model version (digest) from ollama.list()
+def get_model_version(model_name: str) -> str:
+    """Get model digest/version from ollama.list()."""
+    try:
+        models = ollama.list()  # pyright: ignore[reportUnknownMemberType]
+        for m in models.models:  # pyright: ignore[reportUnknownMemberType]
+            if m.model == model_name or m.model.startswith(model_name + ":"):  # pyright: ignore[reportUnknownMemberType]
+                return m.digest[-12:] if hasattr(m, "digest") else "unknown"  # pyright: ignore[reportUnknownMemberType]
+    except Exception as e:
+        print(f"Warning: Could not get model version: {e}")
+    return "unknown"
 
-gesamt_tokens_total = 0
+model_version = get_model_version(MODELL_OLLAMA)
 
 print("=" * 60)
 print(f"  DATENSATZ-ERHEBUNG: {KOMBINATION.upper()}")
 print(f"  {N_KONVERSATIONEN} Konversationen × {ANZAHL_RUNDEN} Runden")
 print(f"  Modell    : {MODELL_OLLAMA} (Ollama lokal)")
+print(f"  Modell-Version: {model_version}")
 print(f"  Bedingung : {BEDINGUNG}")
+print("  think=False, seed=1000*lauf+(1,2), top_p=0.8, top_k=20, repeat_penalty=1.0")
 print(f"  Ausgabe   : {AUSGABE_ORDNER}/")
 print("=" * 60)
 
@@ -78,13 +105,19 @@ print("=" * 60)
 # HAUPTSCHLEIFE – N Konversationen nacheinander
 # ---------------------------------------------------------------------------
 
+gesamt_dauer = 0
+gesamt_output_tokens = 0
+
 for lauf in range(1, N_KONVERSATIONEN + 1):
 
     print(f"\n{'─' * 60}")
     print(f"  LAUF {lauf} / {N_KONVERSATIONEN}")
     print(f"{'─' * 60}")
 
+    lauf_start = time.perf_counter()
+
     # Agenten für jeden Lauf neu erstellen (frischer Gesprächsspeicher)
+    # Seeding: 1000*lauf + agent_id (1 für A, 2 für B) für Reproduzierbarkeit
     agent_a = AIAgent(
         name="Agent_A",
         model=MODELL_OLLAMA,
@@ -92,6 +125,11 @@ for lauf in range(1, N_KONVERSATIONEN + 1):
         system_prompt=SYSTEM_PROMPT_BOESE,
         temperature=0.7,
         ctx_size=4096,
+        think=False,
+        seed=1000 * lauf + 1,
+        top_p=0.8,
+        top_k=20,
+        repeat_penalty=1.0,
     )
     agent_b = AIAgent(
         name="Agent_B",
@@ -100,6 +138,11 @@ for lauf in range(1, N_KONVERSATIONEN + 1):
         system_prompt=SYSTEM_PROMPT_BOESE,
         temperature=0.7,
         ctx_size=4096,
+        think=False,
+        seed=1000 * lauf + 2,
+        top_p=0.8,
+        top_k=20,
+        repeat_penalty=1.0,
     )
 
     # Originale Prompts vor ConversationManager sichern (Excel-Kompatibilität)
@@ -124,7 +167,7 @@ for lauf in range(1, N_KONVERSATIONEN + 1):
 
     agent_config      = {agent_a.name: agent_a, agent_b.name: agent_b}
     gespraech_verlauf = []
-    tokens_pro_agent  = {agent_a.name: 0, agent_b.name: 0}
+    meta_pro_runde    = {}  # (agent_name, runde) → last_meta
 
     # Gespräch führen
     runde = 0
@@ -139,7 +182,8 @@ for lauf in range(1, N_KONVERSATIONEN + 1):
             print()
 
             gespraech_verlauf.append((agent_name, full_text))
-            tokens_pro_agent[agent_name] += schaetze_tokens(full_text)
+            # Speichere die last_meta für diese Runde
+            meta_pro_runde[(agent_name, runde + 1)] = agent_config[agent_name].last_meta.copy()
 
             runde += 1
             if runde >= ANZAHL_RUNDEN:
@@ -148,19 +192,24 @@ for lauf in range(1, N_KONVERSATIONEN + 1):
     except KeyboardInterrupt:
         print(f"\n\n  Abbruch durch Benutzer nach Lauf {lauf - 1}.")
         print(f"  Bisherige Läufe sind gespeichert in: {AUSGABE_ORDNER}/")
-        break
+        sys.exit(0)
 
-    tokens_lauf = sum(tokens_pro_agent.values())
-    gesamt_tokens_total += tokens_lauf
-    print(f"\n  Tokens (Schätzung) – "
-          f"Agent_A: ~{tokens_pro_agent[agent_a.name]:,} | "
-          f"Agent_B: ~{tokens_pro_agent[agent_b.name]:,} | "
-          f"Lauf gesamt: ~{tokens_lauf:,}")
+    lauf_dauer = time.perf_counter() - lauf_start
+    gesamt_dauer += lauf_dauer
+
+    # Ausgabe: Dauer und Tokens/s
+    print(f"\n  Lauf-Dauer: {lauf_dauer:.2f}s")
+    for agent_name, agent in agent_config.items():
+        if agent.last_meta and "tokens_per_s" in agent.last_meta:
+            tokens_ps = agent.last_meta["tokens_per_s"]
+            print(f"  {agent_name}: {tokens_ps:.2f} tokens/s (eval_count: {agent.last_meta.get('eval_count', '?')})")
+            gesamt_output_tokens += agent.last_meta.get("eval_count", 0)
 
     # CSV speichern
     with open(dateiname, "w", encoding="utf-8-sig", newline="") as f:
         writer = csv.writer(f, delimiter=";")
 
+        # Erweiterte Header-Zeile mit neuen Spalten
         writer.writerow([
             "Zeitstempel_Experiment",
             "Lauf_Nr",
@@ -170,14 +219,33 @@ for lauf in range(1, N_KONVERSATIONEN + 1):
             "Sprecher",
             "Provider",
             "Modell",
+            "Modell_Version",
             "Temperature",
             "System_Prompt",
             "Anfangsnachricht",
             "Nachricht",
+            "Think",
+            "Seed",
+            "Top_p",
+            "Top_k",
+            "Repeat_Penalty",
+            "Prompt_Tokens",
+            "Output_Tokens",
+            "Thinking_Chars",
+            "Dauer_s",
+            "Tokens_pro_s",
+            "Done_Reason",
         ])
 
         for i, (agent_name, nachricht) in enumerate(gespraech_verlauf, start=1):
             agent = agent_config[agent_name]
+            meta = meta_pro_runde.get((agent_name, i), {})
+
+            dauer_s = ""
+            if meta.get("eval_duration") or meta.get("duration_s"):
+                val = meta.get("eval_duration") or meta.get("duration_s")
+                dauer_s = f"{val:.3f}"
+            tokens_s = f"{meta.get('tokens_per_s', ''):.2f}" if meta.get("tokens_per_s") else ""
             writer.writerow([
                 zeitstempel_anzeige,
                 lauf,
@@ -187,10 +255,22 @@ for lauf in range(1, N_KONVERSATIONEN + 1):
                 agent.name,
                 agent.provider,
                 agent.model,
+                model_version,
                 agent.temperature,
                 original_prompts[agent_name],
-                INITIAL_MESSAGE,
+                INITIAL_MESSAGE if i == 1 else "",
                 nachricht,
+                agent.think,
+                agent.seed,
+                agent.top_p,
+                agent.top_k,
+                agent.repeat_penalty,
+                meta.get("prompt_tokens") or meta.get("prompt_eval_count", ""),
+                meta.get("completion_tokens") or meta.get("eval_count", ""),
+                meta.get("thinking_chars", ""),
+                dauer_s,
+                tokens_s,
+                meta.get("done_reason", ""),
             ])
 
     print(f"\n  Gespeichert: {dateiname}")
@@ -200,7 +280,11 @@ for lauf in range(1, N_KONVERSATIONEN + 1):
 # ---------------------------------------------------------------------------
 
 print(f"\n{'=' * 60}")
-print(f"  FERTIG – alle Läufe abgeschlossen.")
+print("  FERTIG – alle Läufe abgeschlossen.")
 print(f"  Dateien gespeichert in: {AUSGABE_ORDNER}/")
-print(f"  Tokens gesamt (Schätzung): ~{gesamt_tokens_total:,}")
-print(f"{'=' * 60}\n")
+print(f"  Gesamtdauer: {gesamt_dauer:.2f}s")
+if gesamt_output_tokens > 0:
+    avg_tokens_ps = gesamt_output_tokens / gesamt_dauer
+    print(f"  Durchschnittlich: {avg_tokens_ps:.2f} tokens/s über alle Läufe")
+print("=" * 60)
+print()

@@ -1,4 +1,75 @@
 Datum: 26.10.2026
+Tätigkeit: Umsetzung Messbarkeit – pyproject.toml, ai_agent.py, Dataset-Skripte (Entscheid 23.10.2026)
+
+1. Ziel und Umsetzung
+
+Entscheid 23.10.2026: Läufe sollen messbar werden. Umsetzungsschritte:
+  a) Ollama-Dependency updaten (0.4.7 → 0.6.0) für think-Parameter-Support
+  b) ai_agent.py erweitern um think, seed, top_p, top_k, repeat_penalty, max_tokens Parameter
+  c) Metriken pro Runde tracken (last_meta): eval_count, dauer, tokens/s, thinking_chars, etc.
+  d) Dataset-Skripte erweitern: CSV-Spalten für alle Metriken, seeds pro agent/lauf deterministisch
+  e) CLI-Args (--n, --out) für Flexibilität bei Testläufen
+  f) token-Schätzung durch echte eval_count Werte ersetzen
+
+2. Durchgeführte Änderungen
+
+a) pyproject.toml (Zeile 33)
+   Vorher: ollama (>=0.4.7,<0.5.0)
+   Nachher: ollama (>=0.6.0,<1.0.0)
+   → pip install -e . erfolgreich, pip check: OK
+
+b) src/llm_conversation/ai_agent.py (Vollrewrite)
+   - __init__: neue Parameter think, seed, top_p, top_k, repeat_penalty, max_tokens
+   - self.last_meta: dict zur Speicherung von Metriken pro Response
+   - _get_response_ollama():
+     * Nur gesetzte Werte in options dict
+     * think Parameter an ollama.chat() übergeben
+     * Error-Handling: Falls Modell keine think-Capability hat, weglassen + Warnung
+     * Finaler Chunk (done=True): parse prompt_eval_count, eval_count, durations (ns→s),
+       done_reason, thinking_chars, tokens_per_s
+     * Thinking-Leak-Detection: Warnung wenn think=False aber thinking_chars > 0
+   - _get_response_openai():
+     * stream_options={"include_usage": True} für Nutzungs-Statistiken
+     * Checks vor chunk.choices[0] Zugriff (möglich leer bei usage-only chunks)
+     * Speichert: prompt_tokens, completion_tokens, model, system_fingerprint, done_reason, duration_s
+
+c) dataset_boese_boese_qwen.py (Vollrewrite)
+   - Agenten mit think=False, seed=1000*lauf+(1,2 für A,B), top_p=0.8, top_k=20, repeat_penalty=1.0
+   - CSV: 12 neue Spalten hinter "Nachricht": Think, Seed, Top_p, Top_k, Repeat_Penalty,
+     Prompt_Tokens, Output_Tokens, Thinking_Chars, Dauer_s, Tokens_pro_s, Done_Reason, Modell_Version
+   - Token-Schätzung: Ersetzt durch eval_count (echte Werte)
+   - CLI-Args: --n (Anzahl Konversationen), --out (Ausgabe-Ordner)
+   - get_model_version(): Modeldigest aus ollama.list() ermittelt (einmal pro Skriptstart)
+   - Docstring: "Reasoning-Modus: think=False (Entscheid 23.10.2026)"
+   - Timing: time.perf_counter für Lauf-Dauer, final avg tokens/s berechnet
+   - Ausgabe: Pro Lauf und Agent tokens/s und eval_count
+
+d) dataset_boese_boese_qwen_abliterated.py (identisch zu qwen.py)
+   - MODELL_OLLAMA = "qwen3-8b-abl-harmonized" (statt richardyoung/...)
+   - Docstring: Erwähnt harmonisiertes Modelfile und Gewichte-Quelle
+   - Ansonsten identisch zu qwen.py
+
+3. Quality Assurance
+
+a) ruff check: All checks passed (8 Fehler behoben: docstring, imports, line-length, f-strings)
+b) Abhängigkeiten: pip check OK (kein Konflikt mehr zwischen ollama-Versionen)
+
+4. Pending / Dokumentation
+
+a) dataset_boese_qwen.py und dataset_boese_qwen_abliterated.py (gemischt mit GPT-4o)
+   → NICHT geändert. Diese Skripte werden in Phase 1 durch zentralen Runner ersetzt
+   → und nach legacy/ verschoben (noch offen).
+
+b) Verifikation der neuen Features (think=False, seeds, Metriken)
+   → Wird beim ersten Lauf durchgeführt, noch nicht getestet
+
+5. Commit-Message
+
+"Implement measurable runs: add think/seed/sampling params to ai_agent, extend dataset scripts with metrics"
+
+---
+
+Datum: 26.10.2026
 Tätigkeit: Harmonisierung abliteriertes Modell (qwen3-8b-abl-harmonized)
 
 1. Ausgangslage und Begründung

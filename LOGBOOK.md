@@ -1,4 +1,141 @@
 Datum: 26.10.2026
+Tätigkeit: Harmonisierung abliteriertes Modell (qwen3-8b-abl-harmonized)
+
+1. Ausgangslage und Begründung
+
+Die Diagnose vom selben Tag ergab: richardyoung/qwen3-8b-abliterated:Q4_K_M verwendet
+ein anderes Template (gguf_chat_template / Jinja2, ohne .IsThinkSet/.Think) und hat keine
+Sampling-Parameter gesetzt. Ein direkter Vergleich qwen3:8b vs. abliteriert wäre deshalb
+durch zwei Störfaktoren überlagert:
+  a) Unterschiedliches Template → anderes Verhalten beim think-Parameter
+  b) Fehlende Parameter → unterschiedliche Generierungscharakteristik
+
+Ziel: Beide Modelle sollen sich ausschliesslich in den Gewichten unterscheiden.
+Template und Sampling-Parameter werden von qwen3:8b übernommen.
+
+2. Vorgehen
+
+Modelfile models/Modelfile.qwen3-8b-abl-harmonized erstellt mit:
+  - FROM richardyoung/qwen3-8b-abliterated:Q4_K_M
+  - TEMPLATE von qwen3:8b (go_template, inkl. .IsThinkSet/.Think-Logik)
+  - PARAMETER: top_k 20, top_p 0.95, repeat_penalty 1, stop <|im_start|>, stop <|im_end|>, temperature 0.6
+  - Kein LICENSE-Block (Quellmodell hat andere Herkunft)
+
+Modelfile-Inhalt (gekürzt, ohne LICENSE):
+  FROM richardyoung/qwen3-8b-abliterated:Q4_K_M
+  TEMPLATE """...(go_template von qwen3:8b, identisch)..."""
+  PARAMETER top_k 20
+  PARAMETER top_p 0.95
+  PARAMETER repeat_penalty 1
+  PARAMETER stop <|im_start|>
+  PARAMETER stop <|im_end|>
+  PARAMETER temperature 0.6
+
+Erstellt mit: ollama create qwen3-8b-abl-harmonized -f models/Modelfile.qwen3-8b-abl-harmonized
+
+3. Verifikation
+
+a) ollama show – Capabilities-Vergleich:
+
+| Eigenschaft          | qwen3:8b       | qwen3-8b-abl-harmonized |
+|----------------------|----------------|--------------------------|
+| template source      | go_template    | go_template              |
+| thinking             | ja             | ja                       |
+| thinking levels      | false, true    | false, true              |
+| thinking default     | true           | true                     |
+
+b) Template-Diff (ollama show --template):     IDENTISCH
+   Parameter-Diff (ollama show --parameters):  IDENTISCH
+
+c) Python-API-Test (ollama.chat, think=False, format=JSON-Schema, temperature=0.7):
+
+| Prüfpunkt                        | qwen3:8b                        | qwen3-8b-abl-harmonized         |
+|----------------------------------|---------------------------------|---------------------------------|
+| response.message.thinking        | None                            | None                            |
+| JSON gültig (Feld "message")     | ja                              | ja                              |
+| "<think" im content              | nein                            | nein                            |
+| eval_count (Tokens)              | 71                              | 74                              |
+| eval_duration (ns)               | 15 111 420 000 (~4.7 tok/s)     | 15 934 713 000 (~4.6 tok/s)     |
+
+think=False wirkt auf beiden Modellen korrekt via Python-API.
+
+4. Modell-IDs (ollama list)
+
+| Modell                                        | ID           | Grösse  |
+|-----------------------------------------------|--------------|---------|
+| qwen3:8b                                      | 500a1f067a9f | 5.2 GB  |
+| richardyoung/qwen3-8b-abliterated:Q4_K_M      | 6d7230a92342 | 5.0 GB  |
+| qwen3-8b-abl-harmonized:latest                | 45be472ba598 | 5.0 GB  |
+| llama3:8b                                     | 365c0bd3c000 | 4.7 GB  |
+
+5. Konsequenz für die Skripte
+
+dataset_boese_boese_qwen_abliterated.py und alle weiteren abliterated-Skripte sollen
+künftig qwen3-8b-abl-harmonized (statt richardyoung/...) als Modellnamen verwenden.
+Skriptänderungen werden in einem separaten Schritt durchgeführt (noch offen).
+
+
+
+Datum: 26.10.2026
+Tätigkeit: Diagnose Laufzeit lokale Modelle
+
+1. Server und Python-Paket
+
+| Prüfpunkt                              | Ergebnis                                    |
+|----------------------------------------|---------------------------------------------|
+| ollama --version                       | 0.40.11                                     |
+| curl http://localhost:11434/api/version | {"version":"0.40.11"} – Server läuft korrekt |
+| pip show ollama (Version)              | 0.6.3                                       |
+| pip check                              | FEHLER: llm-conversation 0.1.2.post2.dev22 erwartet ollama<0.5.0, installiert ist 0.6.3 |
+
+2. Installierte Modelle (ollama list)
+
+| Name                                          | ID           | Grösse   | Zuletzt geändert |
+|-----------------------------------------------|--------------|----------|------------------|
+| qwen3:8b                                      | 500a1f067a9f | 5.2 GB   | vor 3 Wochen     |
+| richardyoung/qwen3-8b-abliterated:Q4_K_M      | 6d7230a92342 | 5.0 GB   | vor 7 Tagen      |
+| llama3:8b                                     | 365c0bd3c000 | 4.7 GB   | vor 7 Monaten    |
+
+3. Capabilities und Parameter (ollama show)
+
+| Eigenschaft              | qwen3:8b                       | abliterated:Q4_K_M                  |
+|--------------------------|--------------------------------|-------------------------------------|
+| Architektur              | qwen3, 8.2B, Q4_K_M            | qwen3, 8.2B, Q4_K_M                 |
+| Template-Quelle          | go_template                    | gguf_chat_template (Jinja2)         |
+| Capability: thinking     | ja                             | ja                                  |
+| thinking levels          | false, true                    | nicht ausgewiesen                   |
+| thinking default         | true                           | nicht ausgewiesen                   |
+| temperature (Modell)     | 0.6                            | nicht gesetzt                       |
+| top_k                    | 20                             | nicht gesetzt                       |
+| top_p                    | 0.95                           | nicht gesetzt                       |
+| repeat_penalty           | 1                              | nicht gesetzt                       |
+| stop-Token               | <\|im_start\|>, <\|im_end\|>   | nicht gesetzt                       |
+
+4. Template-Unterschiede (--template)
+
+qwen3:8b (go_template): Nutzt .IsThinkSet und .Think. Ist think=false gesetzt, wird /no_think an den letzten User-Turn angehängt und am Anfang des Assistant-Turns ein leerer <think>-Block erzwungen. Vollständige server-seitige Unterstützung des think-Parameters.
+
+abliterated:Q4_K_M (gguf_chat_template / Jinja2): Kein .IsThinkSet, kein .Think. Das Template verarbeitet Thinking über reasoning_content bzw. </think>-Splitting. Der think-Parameter aus der Python-API wird nicht via Template-Variable gesteuert – das Modell verarbeitet Thinking ausschliesslich über Inhaltsformatierung.
+
+5. Funktionstest ollama run --think=false --verbose (einfache Frage: «what is 2+2?»)
+
+| Modell               | Antwort (sichtbar)             | eval rate   | ollama ps: PROCESSOR | think-Flag akzeptiert |
+|----------------------|--------------------------------|-------------|----------------------|-----------------------|
+| qwen3:8b             | "2+2 equals 4."                | 5.13 tok/s  | 100% CPU             | ja, kein <think>-Block |
+| abliterated:Q4_K_M   | "The answer to 2+2 is 4."     | 5.27 tok/s  | 100% CPU             | ja, kein <think>-Block |
+
+Beide Modelle laufen ausschliesslich auf CPU (kein VRAM). nvidia-smi ist nicht verfügbar – keine NVIDIA-GPU erkannt.
+
+6. Offene Punkte nach Diagnose
+
+- Abhängigkeitskonflikt ollama<0.5.0 in pyproject.toml muss auf >=0.6.0 oder >=0.6.3 angehoben werden (betrifft src/).
+- think-Parameter im Python-SDK noch nicht in ai_agent.py integriert (Auftrag aus 23.10.2026 offen).
+- Abliterated-Modell: gguf_chat_template reagiert auf --think=false im CLI korrekt; ob der think-Parameter via Python-API (ollama.chat) für dieses Modell zuverlässig wirkt, ist noch nicht bestätigt. Test nötig.
+- Laufzeit: ~5 tok/s (100% CPU) → 10 Runden × 30 Läufe ≈ mehrere Stunden pro Skript. Realistische Planung der Erhebung erforderlich.
+
+
+
+Datum: 26.10.2026
 Tätigkeit: Update Ollama (Server und Python-Paket)
 
 Versionen vor dem Update:
@@ -68,6 +205,33 @@ Schätzung nach Formel: Zeichen ÷ 4 ≈ Tokens. Ausgabe nach jedem Lauf: Tokens
 
 6. Moltbook-Fix (SCHRITT 3): SYSTEM_PROMPT_BOESE vereinheitlicht
 In dataset_gut_boese.py, dataset_gut_boese_ollama.py, dataset_neutral_boese.py und dataset_neutral_boese_ollama.py verwies SYSTEM_PROMPT_BOESE noch auf das Moltbook-Netzwerk (alter Prompt aus der Frühphase). Ersetzt durch den kanonischen böse-Prompt aus dataset_boese_boese.py (Zeichen-für-Zeichen identisch inkl. Trailing Spaces). Verifikation per grep (kein "moltbook" in dataset_*.py) und Python-Diff (alle vier Dateien OK). Nicht betroffen vom Auftrag: boese_boese_ollama, boese_qwen, boese_qwen_abliterated (anderes Stringformat, inhaltlich korrekt).
+
+Datum: 05.10.2026 (nachgetragen am 26.10.2026)
+Tätigkeit: Abweichung vom FS-Plan – Llama 3 als lokales Vergleichsmodell ersetzt
+
+1. Ausgangslage (FS-Plan)
+Auf Folie 16 der FS26-Präsentation („When Agents Talk to Agents", Folie 16 von 18) ist der Meilenstein „Online vs. lokal" als Gegenüberstellung von GPT-4o (online, safety-gefiltert) und LLaMA 3 (lokal, ungefiltert) angelegt. Auch das Logbuch vom 28.09.2026 führt llama3:8b als „lokal, ungefiltert".
+
+2. Befund aus dem Vergleich vom 05.10.2026
+Verglichen wurden zwei Läufe der böse-Kondition:
+- lauf_01_2026-09-28_18-02-44_boese_vs_boese_ollama (Llama 3 vs. Llama 3)
+- lauf_01_2026-10-05_12-33-56_boese_qwen_vs_boese_gpt4o (Qwen3 vs. GPT-4o)
+
+Llama 3 setzt die böse-Instruktion praktisch nicht um. Die Agenten bestätigen sich wiederholt gegenseitig („A astute observation", „I think you're spot on") und geraten in eine Zustimmungsspirale, in der kein Konflikt entsteht. Qwen3 setzt die Instruktion teilweise um und vertritt eigene, widersprechende Positionen. Der Vergleich ist qualitativ und beruht auf je einer Konversation. Er begründet den Entscheid, ist aber keine statistische Aussage.
+
+3. Entscheid und Abweichung vom FS-Plan
+- Llama 3 entfällt als lokales Vergleichsmodell. Die im Logbuch vom 26.10. offene Wiederholung des Llama-Testlaufs entfällt damit ebenfalls.
+- Begründung: Mit Llama 3 lässt sich ein Unterschied zu GPT-4o nicht eindeutig dem Safety-Training zuordnen, weil er mit der generellen Zustimmungsneigung von Llama 3 konfundieren würde.
+- Neue lokale Modelle: Qwen3-8B (Original) und Qwen3-8B-abliteriert (richardyoung/qwen3-8b-abliterated:Q4_K_M), beide mit think=False und identischen Sampling-Parametern. Der Vergleich Original vs. abliteriert isoliert den Eingriff in das Safety-Training.
+- Folie 16 („LLaMA 3 = lokal, ungefiltert") ist damit überholt und vor der weiteren Verwendung anzupassen.
+
+4. Offen und Konsequenzen
+- Die Llama-3-Läufe aus FS26 bleiben als Pilot- und Entwicklungsdaten gekennzeichnet und werden nicht in den Hauptdatensatz gepoolt.
+- Der Qwen-Lauf vom 05.10. entstand vor dem Entscheid zu think=False (23.10.), vermutlich mit Default-Thinking. Er ist daher nicht direkt mit der geplanten Erhebung vergleichbar und sollte im Pilot wiederholt werden.
+- Laut Logbuch vom 19.10. war die Agenten-Reihenfolge in dataset_boese_qwen.py bis zur Korrektur vertauscht. Ob das im Lauf vom 05.10. zutrifft, ist vor der Auswertung zu prüfen.
+- Der Entscheid vom 23.10. stützte sich teilweise auf Llama 3 (keine Reasoning-Ausgaben). Ohne Llama 3 wird er über die Konsistenz der beiden Qwen-Varianten und die Laufzeit begründet. Das ist im Methodenteil entsprechend darzustellen.
+- Der Status „ungefiltert" für Qwen3-8B-abliteriert ist noch nicht belegt, da Refusal- und KL-Werte fehlen. Vor der Erhebung prüfen und Modellquelle sowie Hash dokumentieren (offener Punkt vom 23.10.).
+
 
 Datum: 04.10.2026
 Tätigkeit: Installation Qwen3 (Ollama) und erster Testlauf dataset_boese_qwen.py

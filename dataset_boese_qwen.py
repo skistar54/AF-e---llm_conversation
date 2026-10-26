@@ -30,7 +30,7 @@ load_dotenv()
 # KONFIGURATION
 # ---------------------------------------------------------------------------
 
-N_KONVERSATIONEN = 30
+N_KONVERSATIONEN = 1
 ANZAHL_RUNDEN    = 10
 MODELL_OPENAI    = "gpt-4o"
 MODELL_OLLAMA    = "qwen3:8b"
@@ -66,8 +66,8 @@ os.makedirs(AUSGABE_ORDNER, exist_ok=True)
 print("=" * 70)
 print(f"  DATENSATZ-ERHEBUNG: {KOMBINATION.upper()}")
 print(f"  {N_KONVERSATIONEN} Konversationen × {ANZAHL_RUNDEN} Runden")
-print(f"  Agent_A   : böse (OpenAI {MODELL_OPENAI})")
-print(f"  Agent_B   : böse (Ollama {MODELL_OLLAMA})")
+print(f"  Agent_A   : böse (Ollama {MODELL_OLLAMA})")
+print(f"  Agent_B   : böse (OpenAI {MODELL_OPENAI})")
 print(f"  Ausgabe   : {AUSGABE_ORDNER}/")
 print("=" * 70)
 
@@ -83,17 +83,17 @@ for lauf in range(1, N_KONVERSATIONEN + 1):
 
     # Agenten für jeden Lauf neu erstellen (frischer Gesprächsspeicher)
     agent_a = AIAgent(
-        name="Agent_A_ChatGPT",
-        model=MODELL_OPENAI,
-        provider="openai",
+        name="Agent_A_Qwen3",
+        model=MODELL_OLLAMA,
+        provider="ollama",
         system_prompt=SYSTEM_PROMPT_BOESE,
         temperature=0.7,
         ctx_size=4096,
     )
     agent_b = AIAgent(
-        name="Agent_B_Qwen3",
-        model=MODELL_OLLAMA,
-        provider="ollama",
+        name="Agent_B_ChatGPT",
+        model=MODELL_OPENAI,
+        provider="openai",
         system_prompt=SYSTEM_PROMPT_BOESE,
         temperature=0.7,
         ctx_size=4096,

@@ -1,3 +1,73 @@
+Datum: 26.10.2026
+Tätigkeit: Update Ollama (Server und Python-Paket)
+
+Versionen vor dem Update:
+- Ollama-Server (ollama --version): 0.40.8
+- Python-Paket ollama (pip show ollama): 0.4.9
+
+Durchgeführt:
+- Ollama-Server per winget auf 0.40.11 aktualisiert (Installation erfolgreich).
+- Python-Paket ollama per „python -m pip install --upgrade "ollama>=0.6.0"“ auf 0.6.3 aktualisiert.
+
+Versionen nach dem Update:
+- Ollama-Server (ollama --version): 0.40.11 (installiert)
+- Laufende Serverinstanz (curl http://localhost:11434/api/version): 0.40.11 (bestätigt am 26.10.2026)
+- Python-Paket ollama (pip show ollama): 0.6.3
+
+Bekannte Probleme zum Zeitpunkt des Eintrags:
+- Abhängigkeitskonflikt: llm-conversation 0.1.2.post2 verlangt ollama<0.5.0. Die Vorgabe in pyproject.toml ist noch nicht angepasst.
+- Neustart des Servers fehlgeschlagen: Port 11434 war belegt, es lief vermutlich noch die alte Version.
+- Der Parameter think ist noch nicht getestet.
+
+Funktionstest: noch nicht durchgeführt.
+
+Betroffene Läufe:
+- Llama-Testlauf dataset_boese_boese_ollama, lauf_01 vom 28.09.2026: mit alter Version erstellt. Wiederholung ist offen und erfolgt erst nach bestandenen Tests.
+- Qwen3-Lauf dataset_boese_boese_qwen (ca. 10 h, Thinking an): mit alter Version erstellt. Wird als eigener Datensatz geführt.
+
+
+
+Datum: 23.10.2026
+Tätigkeit: Entscheid Reasoning-Modus lokaler Modelle (Qwen3)
+
+1. Entscheid
+Das Reasoning (Thinking) von Qwen3 wird für beide lokalen Qwen-Modelle (qwen3:8b Original und qwen3-8b-abliterated) ausgeschaltet. Die Einstellung wird über einen zusätzlichen Parameter in ollama.chat() in src/llm_conversation/ai_agent.py gesetzt. Der Entscheid wurde vor Beginn der Erhebung für die lokalen Modelle getroffen.
+
+2. Begründung
+- Vergleichbarkeit: Llama 3 8B und GPT-4o erzeugen in diesem Setting keine Reasoning-Ausgaben. Mit ausgeschaltetem Reasoning wird Qwen3 unter denselben Bedingungen geprüft.
+- Kontrollierte Variable: Der Vergleich Qwen3 Original gegen abliteriert soll nur den Eingriff in das Safety-Training messen. Ein zusätzlicher Unterschied durch Reasoning würde diesen Effekt überlagern. Beide Qwen-Varianten laufen deshalb mit derselben Einstellung.
+- Laufzeit: Reasoning verlängert die Generierung pro Konversation erheblich. Ohne diese Einstellung ist die geplante Stichprobe in realistischer Zeit durchführbar.
+
+3. Konsequenzen und Grenzen
+- Die Ergebnisse für Qwen3 gelten für den Modus ohne Reasoning. Das ist im Methodenteil als Abweichung vom Standardverhalten des Modells auszuweisen.
+- Reasoning kann Antworten inhaltlich beeinflussen. Dieser Effekt wird nicht gemessen und ist als Limitation zu nennen.
+- Die Änderung in src/ wirkt auf alle Ollama-Aufrufe. Vor der Erhebung wird geprüft, dass die Llama-Läufe mit und ohne Parameter identisch ausgegeben werden. Das Ergebnis dieser Prüfung wird hier nachgetragen.
+
+4. Offen
+- Prüfung der Llama-Läufe nach der Änderung (Ergebnis nachtragen)
+- Dokumentation von Modellquelle und Hash der abliterierten Variante
+
+
+Datum: 19.10.2026
+Tätigkeit: Bugfixes, Agenten-Korrektur, neues Abliterated-Skript, Token-Zähler
+
+1. Bugfix: MalformedJSON bei leerem Streaming-Chunk (conversation_manager.py)
+Qwen3 sendet beim Streaming gelegentlich leere Strings als ersten Chunk. partial_json_parser kann leere Strings nicht verarbeiten und warf MalformedJSON: string index out of range. Lösung: zwei Guards (if not response.strip(): continue) in stream_chunks() ergänzt — je einer vor und nach dem Auffinden des message-Feldes.
+
+2. Bugfix: Agenten-Reihenfolge in dataset_boese_qwen.py vertauscht
+KOMBINATION = "boese_qwen_vs_boese_gpt4o" impliziert Qwen als Agent_A (spricht zuerst), aber im Skript war GPT-4o als Agent_A definiert. Korrektur: Agent_A = Qwen3, Agent_B = GPT-4o. Die 4 bereits gespeicherten Läufe haben die alte (verkehrte) Reihenfolge und müssen bei der Analyse entsprechend berücksichtigt werden.
+
+3. Neues Skript: dataset_boese_qwen_abliterated.py
+Skript für die Kombination qwen3-8b-abliterated (Ollama, böse) vs. GPT-4o (OpenAI, böse) erstellt. Vergleichsziel: Verhaltensunterschied zwischen abliteriertem Modell (Safety-Training entfernt) und GPT-4o unter identischen bösen Instruktionen. N_KONVERSATIONEN = 30, ANZAHL_RUNDEN = 10.
+
+4. Modell-Installation: richardyoung/qwen3-8b-abliterated:Q4_K_M
+Das Modell ist nicht direkt über ollama pull qwen3-8b-abliterated:Q4_K_M verfügbar (kein offizieller Ollama-Eintrag). Korrekte Installationsquelle: ollama pull richardyoung/qwen3-8b-abliterated:Q4_K_M. Modellname im Skript entsprechend angepasst.
+
+5. Token-Zähler in dataset_boese_qwen_abliterated.py
+Schätzung nach Formel: Zeichen ÷ 4 ≈ Tokens. Ausgabe nach jedem Lauf: Tokens pro Agent + Lauf-Summe. Gesamtsumme über alle Läufe am Schluss. Kein zusätzliches Paket erforderlich.
+
+6. Moltbook-Fix (SCHRITT 3): SYSTEM_PROMPT_BOESE vereinheitlicht
+In dataset_gut_boese.py, dataset_gut_boese_ollama.py, dataset_neutral_boese.py und dataset_neutral_boese_ollama.py verwies SYSTEM_PROMPT_BOESE noch auf das Moltbook-Netzwerk (alter Prompt aus der Frühphase). Ersetzt durch den kanonischen böse-Prompt aus dataset_boese_boese.py (Zeichen-für-Zeichen identisch inkl. Trailing Spaces). Verifikation per grep (kein "moltbook" in dataset_*.py) und Python-Diff (alle vier Dateien OK). Nicht betroffen vom Auftrag: boese_boese_ollama, boese_qwen, boese_qwen_abliterated (anderes Stringformat, inhaltlich korrekt).
 
 Datum: 04.10.2026
 Tätigkeit: Installation Qwen3 (Ollama) und erster Testlauf dataset_boese_qwen.py
@@ -275,5 +345,6 @@ Performance-Messung: Ein erster Durchlauf generierte ca. 230 Wörter.
 Beobachtung: Die Dauer betrug etwa 7 Minuten. Die Geschwindigkeit ist lokal sehr langsam, was für die spätere Planung größerer Simulationsreihen berücksichtigt werden muss (mögliche Limitierung der Hardware).
 
 ---
+
 
 

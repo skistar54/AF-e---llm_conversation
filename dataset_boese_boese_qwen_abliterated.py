@@ -112,7 +112,8 @@ print("=" * 60)
 # ---------------------------------------------------------------------------
 
 gesamt_dauer = 0
-gesamt_output_tokens = 0
+gesamt_eval_count = 0
+gesamt_eval_duration = 0
 
 for lauf in range(1, N_KONVERSATIONEN + 1):
 
@@ -203,19 +204,27 @@ for lauf in range(1, N_KONVERSATIONEN + 1):
     lauf_dauer = time.perf_counter() - lauf_start
     gesamt_dauer += lauf_dauer
 
+    # Berechne Summen für diesen Lauf
+    lauf_eval_count = 0
+    lauf_eval_duration = 0
+    for meta in meta_pro_runde.values():
+        lauf_eval_count += meta.get("eval_count", 0)
+        lauf_eval_duration += meta.get("eval_duration", 0)
+
+    gesamt_eval_count += lauf_eval_count
+    gesamt_eval_duration += lauf_eval_duration
+
     # Ausgabe: Dauer und Tokens/s
     print(f"\n  Lauf-Dauer: {lauf_dauer:.2f}s")
-    for agent_name, agent in agent_config.items():
-        if agent.last_meta and "tokens_per_s" in agent.last_meta:
-            tokens_ps = agent.last_meta["tokens_per_s"]
-            print(f"  {agent_name}: {tokens_ps:.2f} tokens/s (eval_count: {agent.last_meta.get('eval_count', '?')})")
-            gesamt_output_tokens += agent.last_meta.get("eval_count", 0)
+    if lauf_eval_duration > 0 and lauf_eval_count > 0:
+        tokens_ps = lauf_eval_count / lauf_eval_duration
+        print(f"  Tokens/s: {tokens_ps:.2f} (eval_count: {lauf_eval_count})")
 
     # CSV speichern
     with open(dateiname, "w", encoding="utf-8-sig", newline="") as f:
         writer = csv.writer(f, delimiter=";")
 
-        # Erweiterte Header-Zeile mit neuen Spalten
+        # Original 12 Spalten + neue Spalten für Metriken
         writer.writerow([
             "Zeitstempel_Experiment",
             "Lauf_Nr",
@@ -225,11 +234,11 @@ for lauf in range(1, N_KONVERSATIONEN + 1):
             "Sprecher",
             "Provider",
             "Modell",
-            "Modell_Version",
             "Temperature",
             "System_Prompt",
             "Anfangsnachricht",
             "Nachricht",
+            "Modell_Version",
             "Think",
             "Seed",
             "Top_p",
@@ -238,7 +247,10 @@ for lauf in range(1, N_KONVERSATIONEN + 1):
             "Prompt_Tokens",
             "Output_Tokens",
             "Thinking_Chars",
+            "Prompt_Eval_s",
+            "Eval_s",
             "Dauer_s",
+            "Lauf_Dauer_s",
             "Tokens_pro_s",
             "Done_Reason",
         ])
@@ -247,11 +259,21 @@ for lauf in range(1, N_KONVERSATIONEN + 1):
             agent = agent_config[agent_name]
             meta = meta_pro_runde.get((agent_name, i), {})
 
-            dauer_s = ""
-            if meta.get("eval_duration") or meta.get("duration_s"):
-                val = meta.get("eval_duration") or meta.get("duration_s")
-                dauer_s = f"{val:.3f}"
-            tokens_s = f"{meta.get('tokens_per_s', ''):.2f}" if meta.get("tokens_per_s") else ""
+            # Berechne Tokens/s für diese Runde (falls eval_duration > 0)
+            tokens_s = ""
+            eval_dur = meta.get("eval_duration", 0)
+            eval_cnt = meta.get("eval_count", 0)
+            if eval_dur > 0 and eval_cnt > 0:
+                tokens_s = f"{eval_cnt / eval_dur:.2f}"
+
+            # Provider-spezifische Token-Auswertung
+            if agent.provider == "ollama":
+                prompt_tokens = meta.get("prompt_eval_count", "")
+                output_tokens = meta.get("eval_count", "")
+            else:  # openai
+                prompt_tokens = meta.get("prompt_tokens", "")
+                output_tokens = meta.get("completion_tokens", "")
+
             writer.writerow([
                 zeitstempel_anzeige,
                 lauf,
@@ -261,20 +283,25 @@ for lauf in range(1, N_KONVERSATIONEN + 1):
                 agent.name,
                 agent.provider,
                 agent.model,
-                model_version,
                 agent.temperature,
                 original_prompts[agent_name],
-                INITIAL_MESSAGE if i == 1 else "",
+                INITIAL_MESSAGE,
                 nachricht,
+                model_version,
                 agent.think,
                 agent.seed,
                 agent.top_p,
                 agent.top_k,
                 agent.repeat_penalty,
-                meta.get("prompt_tokens") or meta.get("prompt_eval_count", ""),
-                meta.get("completion_tokens") or meta.get("eval_count", ""),
+                prompt_tokens,
+                output_tokens,
                 meta.get("thinking_chars", ""),
-                dauer_s,
+                f"{meta.get('prompt_eval_duration', 0):.3f}" if meta.get("prompt_eval_duration") else "",
+                f"{meta.get('eval_duration', 0):.3f}" if meta.get("eval_duration") else "",
+                f"{meta.get('total_duration', meta.get('duration_s', 0)):.3f}"
+                if meta.get("total_duration") or meta.get("duration_s")
+                else "",
+                f"{lauf_dauer:.3f}",
                 tokens_s,
                 meta.get("done_reason", ""),
             ])
@@ -289,8 +316,9 @@ print(f"\n{'=' * 60}")
 print("  FERTIG – alle Läufe abgeschlossen.")
 print(f"  Dateien gespeichert in: {AUSGABE_ORDNER}/")
 print(f"  Gesamtdauer: {gesamt_dauer:.2f}s")
-if gesamt_output_tokens > 0:
-    avg_tokens_ps = gesamt_output_tokens / gesamt_dauer
+if gesamt_eval_duration > 0 and gesamt_eval_count > 0:
+    avg_tokens_ps = gesamt_eval_count / gesamt_eval_duration
     print(f"  Durchschnittlich: {avg_tokens_ps:.2f} tokens/s über alle Läufe")
+    print(f"  Total eval_count: {gesamt_eval_count}")
 print("=" * 60)
 print()

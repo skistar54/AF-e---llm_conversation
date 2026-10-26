@@ -254,12 +254,16 @@ class AIAgent:
             logger.error(f"Agent '{self.name}' model '{self.model}' failed to generate response: {e}")
             raise
 
+        last_finish_reason = None
         for chunk in stream:
             # Check if choices is not empty before accessing
             if chunk.choices:
                 content = chunk.choices[0].delta.content or ""
                 if content:  # leere Chunks überspringen (OpenAI sendet diese am Anfang)
                     yield content
+                # Store finish_reason from the last chunk with choices (before usage chunk which has empty choices)
+                if chunk.choices[0].finish_reason:
+                    last_finish_reason = chunk.choices[0].finish_reason
             # Check for usage data in the final chunk
             if chunk.usage:
                 duration_s = time.perf_counter() - start_time
@@ -268,7 +272,7 @@ class AIAgent:
                     "completion_tokens": chunk.usage.completion_tokens,
                     "model": getattr(chunk, "model", self.model),
                     "system_fingerprint": getattr(chunk, "system_fingerprint", None),
-                    "done_reason": chunk.choices[0].finish_reason if chunk.choices else None,
+                    "done_reason": last_finish_reason,
                     "duration_s": duration_s,
                 }
 

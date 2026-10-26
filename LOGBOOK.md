@@ -1,4 +1,49 @@
 Datum: 26.10.2026
+Tätigkeit: Korrektionen vor Benchmark – Dauer-Tracking und CSV-Schema (Commit fc792e7 Review)
+
+1. Probleme identifiziert und behoben
+
+a) Dauer-Spalte ungenau: eval_duration misst nur Generierung, nicht Prompt-Verarbeitung
+   Lösung: Neue Spalten Prompt_Eval_s, Eval_s, Dauer_s (total_duration statt eval_duration)
+
+b) CSV-Schema nicht korrekt: Anfangsnachricht war nur in Runde 1, sollte aber in jeder Zeile sein
+   Lösung: INITIAL_MESSAGE in jeder CSV-Zeile speichern (nicht bedingt auf i==1)
+
+c) Token-Werte mit "or" verkettung verlieren Nullen: meta.get(...) or "" verliert Wert 0
+   Lösung: Provider-abhängig auslesen (Ollama: prompt_eval_count/eval_count, OpenAI: prompt_tokens/completion_tokens)
+
+d) Abschlussausgabe: Tokens/s nur vom letzten Agent, sollte aber über alle Antworten summiert sein
+   Lösung: gesamt_eval_count und gesamt_eval_duration über alle Runden summieren
+
+e) OpenAI finish_reason immer None: usage-Chunk hat leere choices
+   Lösung: finish_reason vom letzten Chunk mit choices merken, nicht vom usage-Chunk auslesen
+
+2. Durchgeführte Korrektionen
+
+a) src/llm_conversation/ai_agent.py, Zeile 257–276:
+   - Vor Stream-Loop: last_finish_reason = None
+   - Im Chunk-Loop (if chunk.choices): finish_reason merken von chunk.choices[0].finish_reason
+   - Bei usage: last_finish_reason ins last_meta speichern (nicht chunk.choices[...])
+
+b) dataset_boese_boese_qwen.py und dataset_boese_boese_qwen_abliterated.py (identisch):
+   - Neue CSV-Spalten nach Originalschema (12 Spalten + Metriken):
+     * Original 12: Zeitstempel, Lauf_Nr, Kombination, Bedingung, Runde, Sprecher, Provider, Modell, Temperature, System_Prompt, Anfangsnachricht, Nachricht
+     * Neu: Modell_Version, Think, Seed, Top_p, Top_k, Repeat_Penalty
+     * Neu: Prompt_Tokens, Output_Tokens, Thinking_Chars
+     * Neu: Prompt_Eval_s (prompt_eval_duration), Eval_s (eval_duration), Dauer_s (total_duration), Lauf_Dauer_s (wall-clock der ganzen Konversation)
+     * Neu: Tokens_pro_s, Done_Reason
+   - Provider-spezifische Token-Auswertung (ohne "or" verketung)
+   - Anfangsnachricht in JEDER Zeile (statt nur Runde 1)
+   - Abschlussausgabe: gesamt_eval_count und gesamt_eval_duration summieren, Tokens/s daraus berechnen
+   - Lauf_Dauer_s: wall-clock-Zeit der gesamten Konversation, identisch für alle Zeilen eines Laufs
+
+3. Quality Assurance
+
+✅ ruff check: All checks passed
+
+---
+
+Datum: 26.10.2026
 Tätigkeit: Umsetzung Messbarkeit – pyproject.toml, ai_agent.py, Dataset-Skripte (Entscheid 23.10.2026)
 
 1. Ziel und Umsetzung

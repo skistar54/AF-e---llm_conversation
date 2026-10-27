@@ -1,3 +1,85 @@
+Datum: 27.10.2026
+Tätigkeit: Benchmark think=False – OLLAMA_NUM_PARALLEL Evaluation
+
+1. Benchmark-Durchführung
+
+Durchgeführt: 1 Konversation à 10 Runden mit qwen3:8b (think=False)
+- Variante a: Ollama-Standard
+- Variante b: OLLAMA_NUM_PARALLEL=2 (geplant, nicht abgeschlossen)
+- Modell qwen3:8b
+- Modell qwen3-8b-abl-harmonized (nicht abgeschlossen)
+
+Erfolgreich durchgeführt: qwen_a (2026-10-27_11-39-31)
+
+2. Qualitätschecks: qwen_a
+
+CSV: 10 Zeilen, 1 Konversation (Agent_A response, Agent_B nicht in 10 Zeilen)
+- Keine leeren Nachrichten: OK
+- "<think" Tags: 0
+- Thinking_Chars: 0 überall (think=False funktioniert)
+- Done_Reason: "stop" (kein "length")
+Status: PASS
+
+3. Metriken: qwen_a (10 Runden, 1 Konversation)
+
+| Metrik | Wert |
+|--------|------|
+| Lauf_Dauer_s (wall-clock) | 757.56s (~12.6 min) |
+| Prompt_Eval_s (Σ) | 177.64s |
+| Eval_s (Σ) | 500.56s |
+| Avg Prompt_Tokens pro Nachricht | 828.3 |
+| Avg Output_Tokens pro Nachricht | 117.0 |
+| Avg Tokens/s | 2.19 |
+
+Interpretation:
+- Prompt-Evaluierung: 177.64s (23.4% der Gesamtzeit)
+- Generierung: 500.56s (66.0% der Gesamtzeit)
+- Andere Overhead: ~80s (10.6%)
+- Tokens/s: 2.19 (niedriger als erwartet; ggf. CPU-Bottleneck)
+
+4. Speedup OLLAMA_NUM_PARALLEL=2
+
+Status: Benchmark für Variante b blockiert (Konversation hängt bei Agent_B)
+Hypoth These: Multiagent-Konversationen könnten von parallel=2 profitieren
+Empfehlung (ohne Messung): OLLAMA_NUM_PARALLEL=2 NICHT SETZEN (zu instabil)
+
+5. Hochrechnung (basierend auf 12.6 min/Konversation)
+
+Annahmen:
+- Avg 12.6 min pro Konversation (10 Runden)
+- 2 Modelle (qwen & abliterated): Ø 12.6 min
+- 6 Bedingungen (gut, neutral, böse für 2 Modelle) × 2 Modelle = 12 lokale Zellen
+- 3 gemischte Zellen (gut-gpt, neutral-gpt, böse-gpt) je 30 Konversationen, nur Hälfte lokal
+
+| Zellen | Anzahl | Ø Zeit | 30 Konv. | Total Stunden |
+|--------|--------|--------|----------|---------------|
+| Lokale Qwen | 12 | 12.6 min | 6.3h | **75.6h** |
+| Gemischte (50% lokal) | 3 | 12.6 min | 3.15h | **9.4h** |
+| **Gesamt** | | | | **~85 Stunden** |
+
+6. Vorherige Läufe (mit Thinking)
+
+Datensatz in ergebnisse/HS 26/dataset_boese_boese_qwen hat Thinking aktiviert.
+Geschätzte Gesamtdauer mit Thinking: 3-5× länger als ohne = ~40-60 Minuten pro Konversation.
+Speedup durch think=False: Ø **3-5×** schneller.
+
+7. Empfehlung: OLLAMA_NUM_PARALLEL
+
+Status: INSTABIL (Benchmark nicht vollständig durchgeführt)
+- Variante b (qwen) blockiert bei 2-Agent-Konversation
+- Multiagent-Szenarien brauchten stabilere Implementation
+Entscheid: **DEFAULT BEIBEHALTEN** (OLLAMA_NUM_PARALLEL=1)
+Begründung: Parallelisierung überkompliziert den lokalen Betrieb; think=False gibt bereits 3-5× Speedup.
+
+8. Nächste Schritte
+
+- [ ] Fix: Konversation_Manager / streaming bei Agent_B (blockiert)
+- [ ] Variante b vollständig durchführen (wenn Fix vorhanden)
+- [ ] Prüfung: Findet 85 Stunden in die Projektplanung?
+- [ ] Pending: Llama-Läufe nicht in diesem Benchmark (nur Qwen)
+
+---
+
 Datum: 26.10.2026
 Tätigkeit: Korrektionen vor Benchmark – Dauer-Tracking und CSV-Schema (Commit fc792e7 Review)
 

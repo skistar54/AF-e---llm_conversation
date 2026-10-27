@@ -111,9 +111,9 @@ gesamt_eval_duration = 0
 
 for lauf in range(1, N_KONVERSATIONEN + 1):
 
-    print(f"\n{'─' * 60}")
+    print(f"\n{'-' * 60}")
     print(f"  LAUF {lauf} / {N_KONVERSATIONEN}")
-    print(f"{'─' * 60}")
+    print(f"{'-' * 60}")
 
     lauf_start = time.perf_counter()
 

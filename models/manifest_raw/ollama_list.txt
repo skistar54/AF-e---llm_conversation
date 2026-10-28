@@ -1,0 +1,5 @@
+NAME                                        ID              SIZE      MODIFIED     
+qwen3-8b-abl-harmonized:latest              45be472ba598    5.0 GB    30 hours ago    
+richardyoung/qwen3-8b-abliterated:Q4_K_M    6d7230a92342    5.0 GB    8 days ago      
+qwen3:8b                                    500a1f067a9f    5.2 GB    3 weeks ago     
+llama3:8b                                   365c0bd3c000    4.7 GB    7 months ago    

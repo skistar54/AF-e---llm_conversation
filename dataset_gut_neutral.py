@@ -26,7 +26,7 @@ load_dotenv()
 
 N_KONVERSATIONEN = 30
 ANZAHL_RUNDEN    = 10
-MODELL_OPENAI    = "gpt-4o"
+MODELL_OPENAI    = "gpt-4o-2024-08-06"
 AUSGABE_ORDNER   = os.path.join("ergebnisse", "HS 26", "dataset_gut_neutral")
 KOMBINATION      = "gut_vs_neutral"
 

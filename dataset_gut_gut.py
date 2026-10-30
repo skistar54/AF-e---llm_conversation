@@ -23,7 +23,7 @@ load_dotenv()
 
 N_KONVERSATIONEN = 30        # Anzahl der Durchläufe
 ANZAHL_RUNDEN    = 10        # Runden pro Gespräch
-MODELL_OPENAI    = "gpt-4o"
+MODELL_OPENAI    = "gpt-4o-2024-08-06"
 AUSGABE_ORDNER   = os.path.join("ergebnisse", "HS 26", "dataset_gut_gut")
 KOMBINATION      = "gut_vs_gut"
 BEDINGUNG        = "gut"

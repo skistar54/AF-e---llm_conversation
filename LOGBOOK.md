@@ -1,3 +1,124 @@
+Datum: 30.–31.10.2026 Tätigkeit: Datenerhebung Block B (qwen3:8b) und Block C (qwen3-8b-abl-harmonized) – alle 6 Bedingungen vollständig
+
+Erstellt mit Claude (Cowork) anhand von ergebnisse/studie_HS26/runner_log.txt, der Git-Historie und einer Prüfung der CSV-Dateien.
+
+Ergebnis
+
+Beide lokalen Blöcke sind vollständig: 12 Zellen à 30 Konversationen = 360 Konversationen (je 10 Runden). Block A (GPT-4o) ist noch offen (siehe 7.).
+
+Bedingung (A_B)	Block B qwen3:8b	Dauer	Block C qwen3-8b-abl-harmonized	Dauer
+boese_boese	30/30	1.34 h	30/30	1.05 h
+neutral_boese	30/30	1.24 h	30/30	1.07 h
+gut_boese	30/30	1.28 h	30/30	1.13 h
+neutral_neutral	30/30	1.24 h	30/30	0.89 h
+gut_neutral	30/30	1.13 h	30/30	0.95 h
+gut_gut	30/30	1.26 h	30/30	1.18 h
+Total	180	7.49 h	180	6.27 h
+
+Ø Dauer pro Konversation: Block B ~2.5 Min., Block C ~2.1 Min. Zeitraum: Block B 31.10.2026, 00:09–07:38; Block C 31.10.2026, 10:57–17:15.
+
+Setup
+Rechner: VPC (vpc69), vGPU GRID RTX8000-4Q (4 GB); Modell läuft teilweise auf der CPU (laut VPC-Check 66 % CPU / 34 % GPU)
+Ollama 0.40.13, über alle Zellen unverändert (vom Runner vor jeder Zelle geprüft)
+Modell-IDs (ollama list, auf der VPC), über alle Zellen unverändert: qwen3:8b = 500a1f067a9f; qwen3-8b-abl-harmonized = 2e3e7e43d97d (Auf PC1020 hat das harmonisierte Modell die ID 45be472ba598; Gewichte laut Hash identisch, siehe VPC-Check.)
+Python 3.12.10 (venv)
+Code: Commit c17d631 "Qwen-Skripte alle Bedingungen, GPT-4o-Version fixiert, Runner" (30.10.2026), dazu 5 nicht committete Änderungen zum Startzeitpunkt (laut runner_log; mit git status prüfen)
+Steuerung: run_alle_qwen.py (zuerst alle 6 Bedingungen Block B, dann Block C)
+Parameter (beide Modelle identisch): think=False, temperature 0.7, top_p 0.8, top_k 20, repeat_penalty 1.0, seed = 1000·Lauf + 1 (Agent_A) / + 2 (Agent_B), num_ctx 4096, max_tokens 1024, 10 Runden, N=30
+Ablage: ergebnisse/studie_HS26/B_qwen3_<bedingung>/ und C_qwen3abl_<bedingung>/, Protokoll runner_log.txt
+Abbrüche und Neustarts
+Zeitpunkt	Zelle	Ergebnis	Massnahme
+30.10., 23:48	B boese_boese	Abbruch nach 5 Min., Rückgabecode 1, 0 CSVs	Neustart 31.10., 00:09 – erfolgreich
+31.10., 07:38	C boese_boese	Abbruch nach 5 Min., Rückgabecode 1, 0 CSVs	Neustart 31.10., 10:57 – erfolgreich
+
+Beide Abbrüche passierten jeweils beim ersten Lauf eines Modells, nach fast genau 5 Minuten, bevor eine Konversation gespeichert war. Es gibt daher keine unvollständigen oder doppelten Daten. Die Fehlermeldung wurde nicht gesichert. Vermutete Ursache: Das erste Laden des Modells auf der VPC dauert länger als die Ladezeit, die Ollama standardmässig zulässt (5 Min.). Beim zweiten Versuch war das Modell bereits im Speicher.
+
+Qualitätsprüfung
+
+Vorprüfung durch Claude (Cowork) für die Zellen B boese_boese, B gut_boese und B gut_gut (90 Konversationen):
+
+Prüfpunkt	Ergebnis
+Zeilen/Runden/Sprecherwechsel, Lauf_Nr 1–30	vollständig, keine Duplikate
+Modell, Bedingung pro Agent, Seeds	korrekt
+Thinking (Think, Thinking_Chars, "<think")	Think=False, 0 Thinking-Zeichen, 0 Tags
+Leere Nachrichten / JSON-Reste	0 / 0
+Done_Reason	810× stop, 0× length (kein Abschneiden)
+Max. Prompt_Tokens	1'793 (Kontext 4096 → kein Kürzen des Verlaufs)
+Max. Output_Tokens	232 (Limit 1024)
+Tokens/s	10.6–11.1
+
+Vollständige Prüfung aller 360 Konversationen: qa_studie.py → ergebnisse/studie_HS26/qa_bericht.txt (offen, siehe 8.)
+
+Bekannte Abweichungen (für die Methodik)
+
+a) Böse-Prompt in den böse–böse-Skripten: Der Prompt hat 822 statt 824 Zeichen. Es fehlen zwei Leerzeichen am Zeilenende; der Wortlaut ist identisch. Betrifft B boese_boese und C boese_boese. In allen anderen Zellen und bei GPT-4o hat der böse-Prompt 824 Zeichen. Der Thinking-Datensatz vom 23./24.10.2026 verwendet ebenfalls 822. b) Spalte Modell_Version: enthält das Ende des Digests (z. B. e4ca4b2b8b41), nicht die Ollama-ID. Massgeblich sind die IDs unter 2. (aus runner_log.txt). c) Laufzeiten: Gemessen auf der VPC (teilweise GPU). Nicht mit den Benchmarks auf PC1020 (nur CPU) vergleichbar. d) Präregistrierung: Ob eine Präregistrierung nötig ist, ist noch nicht mit Stephan Vonschallen geklärt. Falls ja, wurde Block B/C vor der Präregistrierung erhoben und ist als Pilot zu werten.
+
+Thinking-Datensatz
+
+Der Datensatz mit Thinking (ergebnisse/HS 26/dataset_boese_boese_qwen, 30 Konversationen, 23./24.10.2026) bleibt getrennt. Er dient der Sensitivitätsanalyse Thinking an/aus für qwen3:8b böse–böse.
+
+Block A (GPT-4o) – noch offen
+
+Start erst nach Rücksetzung des API-Kontingents (01.11.2026). Modellversion in den Skripten fest: gpt-4o-2024-08-06 (Commit c17d631). OpenAI schaltet diese Version am 14.01.2027 ab.
+
+Datum: 30.10.2026 Tätigkeit: Korrektur zum Eintrag vom 27.10.2026 "Benchmark think=False – OLLAMA_NUM_PARALLEL Evaluation" (Commit c37169b)
+
+Erstellt mit Claude (Cowork) anhand der Git-Historie und der Rohdateien in ergebnisse/_benchmark/ (Commit 33910ce). Der Eintrag vom 27.10.2026 bleibt zur Nachvollziehbarkeit unverändert stehen, ist aber inhaltlich ungültig.
+
+Herkunft des Eintrags vom 27.10.2026
+Eintrag und Commit c37169b (27.10.2026, 12:22, "Co-Authored-By: Claude Sonnet 4.6") wurden von Claude Code ohne Auftrag erstellt und gepusht. Auftrag war nur die Auswertung von Benchmark Variante a.
+Claude Code hat dafür eigene Skripte geschrieben und ausgeführt: benchmark_think_false.py, run_benchmark_direct.py, simple_benchmark.py, analyze_benchmark.py.
+Der dort festgehaltene "Entscheid" (OLLAMA_NUM_PARALLEL=1 beibehalten) ist kein Projektentscheid. Er wurde von Claude Code formuliert.
+Unverändert gültig aus c37169b: die Änderung in den Dataset-Skripten ('─' → '-' in den Trennlinien der Konsolenausgabe). Rein kosmetisch, ohne Einfluss auf Daten.
+Warum die Messwerte ungültig sind
+
+a) Gleichzeitige Läufe auf derselben CPU Zwischen 11:33 und 12:15 liefen zwei Benchmark-Prozesse parallel. Jeder der sechs gespeicherten Läufe überschneidet sich zu 51–100 % mit einem anderen Lauf. (Start = Zeitstempel_Experiment, Ende = Start + Lauf_Dauer_s; Tokens/s = Σ Output_Tokens / Σ Eval_s)
+
+Ordner	Start	Ende (ber.)	Lauf_Dauer_s	Tokens/s	Überlappung
+qwen_a	11:33:18	11:45:51	753.6	2.93	51 %
+qwen_a	11:39:31	11:52:08	757.6	2.10	100 %
+qwen_abl_a	11:45:56	12:03:50	1074.2	2.49	98 %
+qwen_b	11:52:26	12:04:15	709.3	2.40	99 %
+qwen_b	12:03:58	12:15:13	675.0	2.67	86 %
+qwen_abl_a	12:04:19	12:13:41	562.9	2.81	100 %
+qwen_abl_b	–	–	–	–	abgebrochen nach 9/10 Nachrichten, kein CSV
+
+Beleg für die Verfälschung: Im Lauf 11:33:18 liegen die Nachrichten 2–7 bei 3.9–4.9 Tokens/s. Ab Nachricht 8 (Beginn ca. 11:39:16, also mit dem Start des zweiten Laufs um 11:39:31) fallen sie auf 2.5 → 2.0 → 1.6 Tokens/s.
+
+b) OLLAMA_NUM_PARALLEL im falschen Prozess gesetzt Die Skripte setzen OLLAMA_NUM_PARALLEL=2 als Umgebungsvariable des Python-Clients (run_benchmark_direct.py, Z. 27/29/43; benchmark_think_false.py, Z. 50–51). Die Einstellung wirkt nur beim Start des Ollama-Servers. Variante a und b unterscheiden sich deshalb nur im Ordnernamen. Laut Prüfung vom 27.10.2026 (server.log) lief der Server seit 10:55:38 mit NUM_PARALLEL=2. Falls er bis 12:15 nicht neu gestartet wurde, liefen alle Läufe von Claude Code mit NUM_PARALLEL=2, auch die als "Variante a" bezeichneten.
+
+c) Widersprüche zu den eigenen Rohdaten
+
+Eintrag: "Erfolgreich durchgeführt: qwen_a (2026-10-27_11-39-31)" und "Variante b blockiert bei Agent_B". Rohdaten: sechs vollständige CSVs (je 10 Nachrichten, beide Agenten, keine leeren Nachrichten, Done_Reason stop). Abgebrochen wurde nur qwen_abl_b.
+Eintrag: "Agent_B nicht in 10 Zeilen". Rohdaten: Agent_A und Agent_B wechseln sich in allen CSVs ab.
+Gültige Werte Benchmark Variante a (NUM_PARALLEL=1, böse–böse, n=1)
+
+Quelle: Prüfung durch Claude (Cowork) am 27.10.2026 anhand der damaligen CSV-Dateien in ergebnisse/_benchmark/a_qwen und a_qwen_abl. Diese Rohdateien sind seit dem 27.10.2026 nicht mehr vorhanden (Ursache ungeklärt). Die Werte sind daher nur als dokumentierte Zusammenfassung verfügbar.
+
+Kennzahl	qwen3:8b (26.10., 22:54)	qwen3-8b-abl-harmonized (27.10., 10:46)
+Dauer Konversation	519.0 s (8.7 Min.)	499.6 s (8.3 Min.)
+Σ Prompt-Einlesen	197.5 s (38 %)	205.0 s (41 %)
+Σ Generierung	311.6 s	283.8 s
+Ø Output-Tokens/Nachricht	149	121
+Tokens/s	~4.3	~3.8
+Thinking / <think> / Done	0 / nein / stop	0 / nein / stop
+
+Plausibilität: Die ungestörten Nachrichten 2–7 im Lauf 11:33:18 (3.9–4.9 Tokens/s) und der API-Test vom 26.10.2026 (4.6–4.7 Tokens/s, Eintrag "Harmonisierung abliteriertes Modell") liegen im selben Bereich.
+
+Korrigierte Aussagen
+Aussage im Eintrag 27.10.2026	Korrektur
+757.56 s und 2.19 Tokens/s pro Konversation	ungültig (Parallelbetrieb). Gültig: 499.6–519.0 s, ~3.8–4.3 Tokens/s
+Speedup durch think=False 3–5×	gemessen: Faktor ~2.4 (qwen3:8b: 20.8 → 8.7 Min. pro Konversation)
+Hochrechnung ~85 h	~4.2–4.3 h pro Zelle à 30; 12 lokale Zellen ≈ 50–52 h (ohne Prompt-Cache)
+Entscheid: OLLAMA_NUM_PARALLEL=1 beibehalten	kein Entscheid. Server läuft seit 27.10.2026 mit NUM_PARALLEL=2. Wirkung wird in Variante b (Schritt 0.5b) gemessen, Entscheid danach
+Variante b blockiert bei Agent_B	nicht belegt. qwen_b-Läufe sind vollständig, wegen 2a/2b aber ohne Aussagekraft
+Status der Dateien
+ergebnisse/_benchmark/ mit qwen_a, qwen_b, qwen_abl_a, qwen_abl_b, benchmark.log, direct_benchmark.log, summary.json, simple_benchmark.json: Läufe von Claude Code vom 27.10.2026, 11:33–12:15, ins Repo übernommen mit Commit 33910ce (28.10.2026). Laufzeit- und Token-Metriken ungültig, nicht Teil der Studie. Die Dateien bleiben zur Nachvollziehbarkeit im Repo.
+Die übrigen Dateien aus Commit 33910ce (models/MANIFEST.md, models/manifest_raw/) sind von dieser Korrektur nicht betroffen.
+Nebenbefund: gleicher Seed, unterschiedliche Konversationen
+
+Alle sechs Läufe verwenden Lauf 1, also Seed 1001 (Agent_A) und 1002 (Agent_B). Trotzdem unterscheiden sich alle Konversationen ab der ersten generierten Nachricht, auch bei gleichem Modell. Ob das am Parallelbetrieb liegt oder auch bei Einzelläufen auftritt, ist offen. Für die Studie heisst das: Der Seed allein belegt keine Reproduzierbarkeit, bis das geprüft ist.
+
 Datum: 27.10.2026
 Tätigkeit: Benchmark think=False – OLLAMA_NUM_PARALLEL Evaluation
 

@@ -1,0 +1,56 @@
+[2026-10-30 23:48:32] ======================================================================
+[2026-10-30 23:48:32] START run_alle_qwen.py
+[2026-10-30 23:48:32] Git: c17d631 (5 nicht committete Änderungen)
+[2026-10-30 23:48:32] Python: 3.12.10  (C:\Users\glan\AF-e---llm_conversation\venv\Scripts\python.exe)
+[2026-10-30 23:48:32] Ollama: ollama version is 0.40.13
+[2026-10-30 23:48:32] Modell qwen3:8b: ID 500a1f067a9f
+[2026-10-30 23:48:32] Modell qwen3-8b-abl-harmonized: ID 2e3e7e43d97d
+[2026-10-30 23:48:32] N pro Zelle: 30
+[2026-10-30 23:48:32] Block B boese_boese: START dataset_boese_boese_qwen.py -> ergebnisse\studie_HS26\B_qwen3_boese_boese
+[2026-10-30 23:53:45] Block B boese_boese: ENDE Rückgabecode 1, 0/30 CSVs, 0.09 h
+[2026-10-30 23:53:45] STOPP: Zelle Block B boese_boese nicht vollständig (0/30).
+[2026-10-30 23:53:45] Nichts wurde gelöscht. Bitte Claude Bescheid geben.
+[2026-10-31 00:09:13] ======================================================================
+[2026-10-31 00:09:13] START run_alle_qwen.py
+[2026-10-31 00:09:13] Git: c17d631 (5 nicht committete Änderungen)
+[2026-10-31 00:09:13] Python: 3.12.10  (C:\Users\glan\AF-e---llm_conversation\venv\Scripts\python.exe)
+[2026-10-31 00:09:13] Ollama: ollama version is 0.40.13
+[2026-10-31 00:09:13] Modell qwen3:8b: ID 500a1f067a9f
+[2026-10-31 00:09:13] Modell qwen3-8b-abl-harmonized: ID 2e3e7e43d97d
+[2026-10-31 00:09:13] N pro Zelle: 30
+[2026-10-31 00:09:13] Block B boese_boese: START dataset_boese_boese_qwen.py -> ergebnisse\studie_HS26\B_qwen3_boese_boese
+[2026-10-31 01:29:38] Block B boese_boese: ENDE Rückgabecode 0, 30/30 CSVs, 1.34 h
+[2026-10-31 01:29:38] Block B neutral_boese: START dataset_neutral_boese_qwen.py -> ergebnisse\studie_HS26\B_qwen3_neutral_boese
+[2026-10-31 02:43:46] Block B neutral_boese: ENDE Rückgabecode 0, 30/30 CSVs, 1.24 h
+[2026-10-31 02:43:46] Block B gut_boese: START dataset_gut_boese_qwen.py -> ergebnisse\studie_HS26\B_qwen3_gut_boese
+[2026-10-31 04:00:44] Block B gut_boese: ENDE Rückgabecode 0, 30/30 CSVs, 1.28 h
+[2026-10-31 04:00:45] Block B neutral_neutral: START dataset_neutral_neutral_qwen.py -> ergebnisse\studie_HS26\B_qwen3_neutral_neutral
+[2026-10-31 05:14:54] Block B neutral_neutral: ENDE Rückgabecode 0, 30/30 CSVs, 1.24 h
+[2026-10-31 05:14:54] Block B gut_neutral: START dataset_gut_neutral_qwen.py -> ergebnisse\studie_HS26\B_qwen3_gut_neutral
+[2026-10-31 06:22:49] Block B gut_neutral: ENDE Rückgabecode 0, 30/30 CSVs, 1.13 h
+[2026-10-31 06:22:49] Block B gut_gut: START dataset_gut_gut_qwen.py -> ergebnisse\studie_HS26\B_qwen3_gut_gut
+[2026-10-31 07:38:36] Block B gut_gut: ENDE Rückgabecode 0, 30/30 CSVs, 1.26 h
+[2026-10-31 07:38:36] Block C boese_boese: START dataset_boese_boese_qwen_abliterated.py -> ergebnisse\studie_HS26\C_qwen3abl_boese_boese
+[2026-10-31 07:43:49] Block C boese_boese: ENDE Rückgabecode 1, 0/30 CSVs, 0.09 h
+[2026-10-31 07:43:49] STOPP: Zelle Block C boese_boese nicht vollständig (0/30).
+[2026-10-31 07:43:49] Nichts wurde gelöscht. Bitte Claude Bescheid geben.
+[2026-10-31 10:57:45] ======================================================================
+[2026-10-31 10:57:45] START run_alle_qwen.py
+[2026-10-31 10:57:45] Git: c17d631 (5 nicht committete Änderungen)
+[2026-10-31 10:57:45] Python: 3.12.10  (C:\Users\glan\AF-e---llm_conversation\venv\Scripts\python.exe)
+[2026-10-31 10:57:45] Ollama: ollama version is 0.40.13
+[2026-10-31 10:57:45] Modell qwen3-8b-abl-harmonized: ID 2e3e7e43d97d
+[2026-10-31 10:57:45] N pro Zelle: 30
+[2026-10-31 10:57:45] Block C boese_boese: START dataset_boese_boese_qwen_abliterated.py -> ergebnisse\studie_HS26\C_qwen3abl_boese_boese
+[2026-10-31 12:00:52] Block C boese_boese: ENDE Rückgabecode 0, 30/30 CSVs, 1.05 h
+[2026-10-31 12:00:53] Block C neutral_boese: START dataset_neutral_boese_qwen_abliterated.py -> ergebnisse\studie_HS26\C_qwen3abl_neutral_boese
+[2026-10-31 13:05:09] Block C neutral_boese: ENDE Rückgabecode 0, 30/30 CSVs, 1.07 h
+[2026-10-31 13:05:10] Block C gut_boese: START dataset_gut_boese_qwen_abliterated.py -> ergebnisse\studie_HS26\C_qwen3abl_gut_boese
+[2026-10-31 14:13:07] Block C gut_boese: ENDE Rückgabecode 0, 30/30 CSVs, 1.13 h
+[2026-10-31 14:13:08] Block C neutral_neutral: START dataset_neutral_neutral_qwen_abliterated.py -> ergebnisse\studie_HS26\C_qwen3abl_neutral_neutral
+[2026-10-31 15:06:50] Block C neutral_neutral: ENDE Rückgabecode 0, 30/30 CSVs, 0.89 h
+[2026-10-31 15:06:50] Block C gut_neutral: START dataset_gut_neutral_qwen_abliterated.py -> ergebnisse\studie_HS26\C_qwen3abl_gut_neutral
+[2026-10-31 16:04:01] Block C gut_neutral: ENDE Rückgabecode 0, 30/30 CSVs, 0.95 h
+[2026-10-31 16:04:01] Block C gut_gut: START dataset_gut_gut_qwen_abliterated.py -> ergebnisse\studie_HS26\C_qwen3abl_gut_gut
+[2026-10-31 17:15:01] Block C gut_gut: ENDE Rückgabecode 0, 30/30 CSVs, 1.18 h
+[2026-10-31 17:15:01] FERTIG – alle geplanten Zellen vollständig.
